@@ -1,0 +1,44 @@
+extends: default
+page:
+  margin: [0.85in, 0.85in, 0.85in, 0.85in]
+  size: Letter
+  numbering_start_at: 3
+heading:
+  h1_font_size: floor($base_font_size * 1.7)
+  h2_font_size: floor($base_font_size * 1.4)
+  h3_font_size: floor($base_font_size * 1.2)
+  h4_font_size: $base_font_size
+  h5_font_size: $base_font_size
+  h6_font_size: $base_font_size
+header:
+  font_size: $base_font_size_small
+  height: 60
+  line_height: 1
+  recto:
+    left:
+      content: 'image::penn-logo.png[width=120]'
+    right:
+      content: |
+        Spring 2023 ESE615 Final Project +
+        {banner-subtitle}
+  verso:
+    left:
+      content: $header_recto_left_content
+    right:
+      content: $header_recto_right_content
+footer:
+  height: $base_line_height_length * 4.5
+  columns: =100%
+  recto:
+    center:
+      content: |
+        {page-number}
+  verso:
+    center:
+      content: $footer_recto_center_content
+image:
+    align: center
+caption:
+    align: center
+description-list:
+      term-font-color: #707070
