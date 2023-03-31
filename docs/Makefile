@@ -5,7 +5,10 @@ TEX = pdflatex
 TEXFLAGS = -halt-on-error -output-directory $(dir $@)
 
 DOC_LIST = proposal.pdf
-CLEAN_LIST += $(DOC_LIST) proposal.aux proposal.log
+CLEAN_LIST += $(DOC_LIST) schedule.png block-diagram.png \
+              proposal.aux proposal.log
+
+proposal.pdf-deps := block-diagram.png schedule.png
 
 
 docs: $(DOC_LIST)
@@ -25,6 +28,9 @@ clean:
 
 %.png: %.puml
 	$(QUIET_GEN) plantuml -Tpng $<
+
+%.png: %.svg
+	$(QUIET_GEN) inkscape --export-filename=$@ --export-type=png $<
 
 ifneq ($(findstring $(MAKEFLAGS),s),s)
 ifndef V
