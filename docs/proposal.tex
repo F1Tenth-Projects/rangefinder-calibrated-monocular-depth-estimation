@@ -61,7 +61,7 @@ are more resource-constrained.
 
 
 \section{Why is it hard?}
-A lidar is precision device, usually with moving parts, making it more
+A lidar is a precision device, usually with moving parts, making it more
 expensive to produce. Less expensive components may achieve comparable accuracy
 to a lidar in some dimensions, but generally cannot do so across all required
 dimensions. If the outputs of inexpensive sensors that are accurate in a subset
@@ -114,7 +114,6 @@ separating the sensors, allowing for a more compact solution.
 \label{fig:block-diagram}
 \end{figure}
 
-\FloatBarrier
 
 The histogram output of the VL53L4CX provides a very useful input for the
 sensor fusion implementation. By overlapping the rangefinders' fields of view
@@ -132,6 +131,7 @@ fusion approach would provide adequate capabilities at a fraction of the cost
 of the current sensor. Active measurement using the time-of-flight rangefinders
 should allow the implementation to generalize to other environments.
 
+\FloatBarrier
 
 \subsection{Project Schedule and Risks}
 
