@@ -69,9 +69,19 @@ of the required dimensions can be combined, significant cost savings may be
 realized.
 
 \section{What have others tried to do?}
-Stereo Camera
+Stereo cameras can provide a relatively low-cost approach to passively
+determine depth from 2D images, however they are quite limited in range. The
+Intel RealSense cameras, for example, only operate out to a maximum of 3m and
+6m depending on the model \cite{realsense-range}, and error of several
+centimeters can be expected at the outer limits of these ranges
+\cite{realsense-error}.
 
-MiDaS \cite{midas}
+MiDaS \cite{midas} \cite{midas-paper} is a depth estimation model that operates
+with inputs from a monocular camera. The model was trained on a wide variety of
+large datasets, attempting to build a model that generalizes well to new
+environments. While the model can achieve a reasonable degree of accuracy in
+determining the relative depth of objects in an image, mapping to absolute
+ranges requires some adaptation of the model.
 
 
 \section{What you will do? How long will it take?}
@@ -92,7 +102,10 @@ only provide azimuth information in a fixed angle increments with a fairly wide
 field of view. Consequently, such an approach is, on its own, unsuitable for
 fine measurements in azimuth. The VL53L4CX time-of-flight sensor selected for
 this project provides a histogram of the intensity of each reflection within
-its 18° field of view and across its 6m range.
+its 18° field of view and across its 6m range. Unlike the stereo camera
+solution, the rangefinder approach does not lose accuracy at the outer edge of
+its range limits, and its accuracy is not limited by the physical width
+separating the sensors, allowing for a more compact solution.
 
 \begin{figure}
 \centering
@@ -165,8 +178,11 @@ from the augmented depth map.
 
 
 \begin{thebibliography}{00}
-\bibitem{midas} Ranftl et. al., Towards Robust Monocular Depth Estimation:
+\bibitem{midas} https://github.com/isl-org/MiDaS
+\bibitem{midas-paper} Ranftl et. al., Towards Robust Monocular Depth Estimation:
 Mixing Datasets for Zero-shot Cross-dataset Transfer, TPAMI 2022
+\bibitem{realsense-range} https://www.intelrealsense.com/stereo-depth/
+\bibitem{realsense-error} https://dev.intelrealsense.com/docs/tuning-depth-cameras-for-best-performance
 \end{thebibliography}
 
 \end{document}
