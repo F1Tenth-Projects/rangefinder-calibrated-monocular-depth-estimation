@@ -1,0 +1,68 @@
+@startgantt
+project starts 2023-03-27
+projectscale daily
+scale 2.0
+
+-- Material --
+[Material Lead Time] lasts 1 week and starts 2023-03-29
+
+-- Laser Rangefinder Array --
+[BOM] lasts 4 days
+[Mount Design/Fab] lasts 2 week
+[Mount Assembly] lasts 2 days
+[Material Lead Time] -> [Mount Assembly]
+[Mount Design/Fab] -> [Mount Assembly]
+
+[Firmware] lasts 2 weeks and starts 2023-04-10
+[Device Driver] lasts 1 week
+[Device Driver Stub] lasts 1 week and ends 2023-04-16
+
+[BOM] -> [Material Lead Time]
+[Material Lead Time] -> [Firmware]
+[Firmware]->[Device Driver]
+
+-- Sensor Fusion --
+[Image Partitioning] lasts 1 week and starts 2023-04-03
+then [Image Histograms] lasts 1 week
+then [Histogram Scale Matching] lasts 1 week
+then [Image Z Scaling] lasts 1 week
+
+[Device Driver Stub] -> [Histogram Scale Matching]
+
+-- Monocular Depth Estimation --
+[MiDaS Jetson Build] lasts 1 week and starts 2023-04-06
+then [Model Adaptation, Training, and Tuning] lasts 18 days
+
+[MiDaS Jetson Build] -> [Histogram Scale Matching]
+
+-- Trajectory Control --
+[Tuned Gap Following] lasts 4 weeks and starts 2023-04-03
+
+-- Integration --
+[Car Camera Setup] lasts 1 day and starts 2023-04-03
+[On-Car Testing] lasts 1 week
+
+[Model Adaptation, Training, and Tuning] -> [On-Car Testing]
+[Device Driver] -> [On-Car Testing]
+[Mount Assembly] -> [On-Car Testing]
+[Image Z Scaling] -> [On-Car Testing]
+[Tuned Gap Following] -> [On-Car Testing]
+
+[Final Report] lasts 1 week and starts at [On-Car Testing]'s start
+[Project Proposal] starts 2023-03-27 and ends 2023-04-03
+
+-- Milestones --
+[Lab 7 Due] happens 2023-03-29
+[Ethics Paper Due] happens 2023-04-03
+[Lab 8 Due] happens 2023-04-05
+[Lab 8 Due] displays on same row as [Lab 7 Due]
+
+[Project Proposal Due] happens 2023-04-03
+[Final Race] happens 2023-04-24
+[Final Submission] happens 2023-05-09
+[Project Demos] happens 2023-05-08
+[Final Race] displays on same row as [Project Proposal Due]
+[Project Demos] displays on same row as [Project Proposal Due]
+
+[Final Submission] displays on same row as [Ethics Paper Due]
+@endgantt
