@@ -20,9 +20,10 @@ CLEANLIST = $(BINLIST) $(ELFLIST) \
 all: $(BINLIST)
 
 -include target/$(TARGET)/Makefile
+-include vl53lx/Makefile
 
 # target-specific objects in the form of 'target-objs = foo.o'
-laser-array.elf-objs := $(TARGET_OBJS) laser-array.o
+laser-array.elf-objs := $(TARGET_OBJS) $(VL53LX_OBJS) laser-array.o
 
 .SECONDEXPANSION:
 $(ELFLIST) : % : $$($$@-objs)
