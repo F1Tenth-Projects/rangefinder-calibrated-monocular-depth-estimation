@@ -23,7 +23,7 @@ all: $(BINLIST)
 -include vl53lx/Makefile
 
 # target-specific objects in the form of 'target-objs = foo.o'
-laser-array.elf-objs := $(TARGET_OBJS) $(VL53LX_OBJS) laser-array.o
+laser-array.elf-objs := $(TARGET_OBJS) $(VL53LX_OBJS) laser-array.o i2c.o
 
 .SECONDEXPANSION:
 $(ELFLIST) : % : $$($$@-objs)
