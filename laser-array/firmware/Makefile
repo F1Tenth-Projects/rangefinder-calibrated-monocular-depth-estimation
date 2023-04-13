@@ -7,8 +7,9 @@ HOSTLDFLAGS = -lc
 CC = arm-none-eabi-gcc
 CFLAGS  += -g -O2 -Wall -D$(CHIP_DEFINE) -mthumb -mcpu=cortex-m4 -g \
            -Iinclude -Iinclude/$(TARGET) -Itarget/$(TARGET)/include \
-           -ffunction-sections -fdata-sections -DF_CPU=$(F_CPU) \
-           -I ../common/include/
+           -I ../common/include/ \
+           -ffunction-sections -fdata-sections -fno-strict-aliasing \
+           -DF_CPU=$(F_CPU)
 LDFLAGS += -Ttarget/$(TARGET)/link.ld \
            -Wl,--gc-sections -static -specs=nano.specs
 
