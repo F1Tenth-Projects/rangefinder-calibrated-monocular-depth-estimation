@@ -23,6 +23,7 @@ struct laserarray {
 	} sensor[LASERARRAY_NUM_SENSORS];
 };
 
+static int is_laserarray_device(libusb_device_handle *handle);
 static int maybe_init_usbctx(void);
 static int map_libusb_error(int libusb_errno);
 
@@ -57,6 +58,13 @@ int laserarray_open(const char *devicepath, laserarray **dev_out)
 	rc = libusb_wrap_sys_device(usbctx, fileno(dev->devfile), &dev->usbdev);
 	if (rc != 0) {
 		rc = map_libusb_error(rc);
+		goto err_close_file;
+	}
+
+	if ((rc = is_laserarray_device(dev->usbdev)) < 1) {
+		if (rc == 0) {
+			rc = -LASERARRAY_EBADDEV;
+		}
 		goto err_close_file;
 	}
 
@@ -137,4 +145,27 @@ static int map_libusb_error(int libusb_errno)
 	default:
 		return -LASERARRAY_EUNKNOWN;
 	}
+}
+
+static int is_laserarray_device(libusb_device_handle *handle)
+{
+	int rc;
+	unsigned char stringdesc[sizeof(PRODUCT_STRING) + 1];
+	struct libusb_device_descriptor desc;
+	libusb_device *dev;
+
+	dev = libusb_get_device(handle);
+
+	rc = libusb_get_device_descriptor(dev, &desc);
+	if (rc != 0) {
+		return map_libusb_error(rc);
+	}
+
+	rc = libusb_get_string_descriptor_ascii(handle, desc.iProduct,
+	                                        stringdesc, sizeof(stringdesc));
+	if (rc < 0) {
+		return map_libusb_error(rc);
+	}
+
+	return strcmp((char *) stringdesc, PRODUCT_STRING) == 0;
 }
