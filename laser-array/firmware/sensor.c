@@ -31,14 +31,59 @@ int sensor_enable(struct sensor *s, int should_be_enabled)
 			handle_fault(s, rc);
 			return -1;
 		}
+		s->enabled = 1;
 	} else if (s->enabled && !should_be_enabled) {
 		if ((rc = VL53LX_StopMeasurement(&s->dev)) != 0) {
 			handle_fault(s, rc);
 			return -1;
 		}
+		s->enabled = 0;
 	}
 
 	return 0;
+}
+
+void sensor_process(struct sensor *s)
+{
+	int rc;
+	uint8_t ready;
+
+	if (!s->enabled || s->fault) {
+		return;
+	}
+
+	ready = 0;
+	rc = VL53LX_GetMeasurementDataReady(&s->dev, &ready);
+	if (rc < 0) {
+		handle_fault(s, rc);
+		return;
+	} else if (ready) {
+		int i;
+		struct laserarray_sensor_data msg;
+		VL53LX_MultiRangingData_t sensor_data;
+
+		rc = VL53LX_GetMultiRangingData(&s->dev, &sensor_data);
+		if (rc < 0) {
+			handle_fault(s, rc);
+			return;
+		}
+
+		rc = VL53LX_ClearInterruptAndStartMeasurement(&s->dev);
+		if (rc < 0) {
+			handle_fault(s, rc);
+		}
+
+		memset(&msg, 0, sizeof(msg));
+		msg.msg_type = LASERARRAY_MSG_SENSOR_DATA;
+		msg.sensor_id = s->sensor_id;
+		msg.n_detections = sensor_data.NumberOfObjectsFound;
+		for (i = 0; i < sensor_data.NumberOfObjectsFound; i++) {
+			msg.ranges[i] = sensor_data.RangeData[i]
+			                           .RangeMilliMeter;
+		}
+
+		usb_send_nonblocking(1, (uint8_t *) &msg, sizeof(msg));
+	}
 }
 
 static void handle_fault(struct sensor *s, VL53LX_Error e)

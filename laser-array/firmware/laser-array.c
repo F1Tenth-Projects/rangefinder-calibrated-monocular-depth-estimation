@@ -28,6 +28,9 @@ int main()
 	usb_attach();
 
 	while (1) {
+		for (i = 0; i < LASERARRAY_NUM_SENSORS; i++) {
+			sensor_process(&sensors[i]);
+		}
 		usb_process();
 	}
 
