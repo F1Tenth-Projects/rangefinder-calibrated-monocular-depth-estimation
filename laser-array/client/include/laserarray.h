@@ -59,5 +59,12 @@ int laserarray_reset(laserarray *dev, int sensor_id);
 /* Closes the device 'dev' and frees all resources associated with it. */
 void laserarray_close(laserarray *dev);
 
+/* Returns the string description for the error code 'laserarray_errnum'. */
+const char *laserarray_strerror(int laserarray_errnum);
+
+/* Returns the string representation of the #define constant name for the error
+ * code 'laserarray_errnum'. */
+const char *laserarray_error_name(int laserarray_errnum);
+
 
 #endif

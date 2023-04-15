@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <pthread.h>
 #include <libusb.h>
 #include <laserarray.h>
@@ -114,6 +115,46 @@ void laserarray_close(laserarray *dev)
         libusb_close(dev->usbdev);
         fclose(dev->devfile);
         free(dev);
+}
+
+const char *laserarray_strerror(int laserarray_errnum)
+{
+	switch (abs(laserarray_errnum)) {
+	case LASERARRAY_SUCCESS:   return "Success";
+	case LASERARRAY_EUNKNOWN:  return "Unknown error";
+	case LASERARRAY_EERRNO:    return strerror(errno);
+	case LASERARRAY_ENOTIMPL:  return "Function not implemented";
+	case LASERARRAY_EBADDEV:   return "Not a laserarray device";
+	case LASERARRAY_EINVAL:    return "Invalid argument";
+	case LASERARRAY_ENODATA:   return "Data not available";
+	case LASERARRAY_ETIMEOUT:  return "Communications timeout";
+	case LASERARRAY_EHARDWARE: return "Hardware error";
+	case LASERARRAY_ELOSTDEV:  return "Connection to device lost";
+	case LASERARRAY_EBUSY:     return "Device busy";
+	case LASERARRAY_EIO:       return "Input/output error";
+	default:                   return "Unknown error";
+	};
+}
+
+const char *laserarray_error_name(int laserarray_errnum)
+{
+	#define ERROR_NAME(name) case name: return #name;
+	switch (abs(laserarray_errnum)) {
+	ERROR_NAME(LASERARRAY_SUCCESS)
+	ERROR_NAME(LASERARRAY_EUNKNOWN)
+	ERROR_NAME(LASERARRAY_EERRNO)
+	ERROR_NAME(LASERARRAY_ENOTIMPL)
+	ERROR_NAME(LASERARRAY_EBADDEV)
+	ERROR_NAME(LASERARRAY_EINVAL)
+	ERROR_NAME(LASERARRAY_ENODATA)
+	ERROR_NAME(LASERARRAY_ETIMEOUT)
+	ERROR_NAME(LASERARRAY_EHARDWARE)
+	ERROR_NAME(LASERARRAY_ELOSTDEV)
+	ERROR_NAME(LASERARRAY_EBUSY)
+	ERROR_NAME(LASERARRAY_EIO)
+	default: return "";
+	};
+	#undef ERROR_NAME
 }
 
 static int maybe_init_usbctx(void)
