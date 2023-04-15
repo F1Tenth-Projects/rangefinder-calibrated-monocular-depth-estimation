@@ -89,12 +89,18 @@ err_free_obj:
 
 int laserarray_enable_sensor(laserarray *dev, int sensor_id)
 {
-	return -LASERARRAY_ENOTIMPL;
+	int rc;
+	rc = libusb_control_transfer(dev->usbdev, 0x40, LASERARRAY_RQ_ENABLE,
+	                             0, sensor_id, NULL, 0, 100);
+	return map_libusb_error(rc);
 }
 
 int laserarray_disable_sensor(laserarray *dev, int sensor_id)
 {
-	return -LASERARRAY_ENOTIMPL;
+	int rc;
+	rc = libusb_control_transfer(dev->usbdev, 0x40, LASERARRAY_RQ_DISABLE,
+	                             0, sensor_id, NULL, 0, 100);
+	return map_libusb_error(rc);
 }
 
 int laserarray_get_detections(const laserarray *dev, int sensor_id,
