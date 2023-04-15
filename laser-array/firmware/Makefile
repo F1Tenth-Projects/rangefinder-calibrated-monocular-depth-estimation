@@ -25,7 +25,7 @@ all: $(BINLIST)
 
 # target-specific objects in the form of 'target-objs = foo.o'
 laser-array.elf-objs := $(TARGET_OBJS) $(VL53LX_OBJS) laser-array.o i2c.o \
-                        usb-descriptors.o usb.o panic.o
+                        usb-descriptors.o usb.o panic.o sensor.o
 
 .SECONDEXPANSION:
 $(ELFLIST) : % : $$($$@-objs)
