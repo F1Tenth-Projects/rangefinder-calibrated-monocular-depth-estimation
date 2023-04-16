@@ -27,6 +27,7 @@ struct laserarray {
 	FILE *devfile;
 	libusb_device_handle *usbdev;
 	pthread_t rx_thread;
+	uint8_t thread_exit_pending;
 	struct sensor sensor[LASERARRAY_NUM_SENSORS];
 };
 
@@ -160,7 +161,8 @@ int laserarray_reset(laserarray *dev, int sensor_id)
 
 void laserarray_close(laserarray *dev)
 {
-	pthread_kill(dev->rx_thread, 9);
+	dev->thread_exit_pending = 1;
+	pthread_join(dev->rx_thread, NULL);
         libusb_release_interface(dev->usbdev, 0);
         libusb_attach_kernel_driver(dev->usbdev, 0);
         libusb_close(dev->usbdev);
@@ -271,10 +273,15 @@ static void *run_rx_thread(void *device)
 		struct laserarray_fault fault;
 	} msg;
 
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 	dev = device;
 	while (1) {
 		int rc;
 		int n_transferred;
+
+		if (dev->thread_exit_pending) {
+			break;
+		}
 
 		rc = libusb_interrupt_transfer(dev->usbdev, 0x81,
 		                               (uint8_t *) &msg, sizeof(msg),
