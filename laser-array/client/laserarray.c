@@ -3,6 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
+#include <sys/time.h>
 #include <libusb.h>
 #include <laserarray.h>
 #include <laserarray-common/usbproto.h>
@@ -11,22 +13,32 @@
 #define USB_PID         0x2423  /* USB_PID_ATMEL_ASF_VENDOR_CLASS */
 #define PRODUCT_STRING  "F1TENTH VL53L4CX Array"
 
+#define STALE_DATA_THRESHOLD 1000000  /* microseconds */
+
+struct sensor {
+	pthread_rwlock_t lock;
+	int64_t update_time_us; /* UNIX time of last update in us */
+	uint16_t ranges[LASERARRAY_MAX_DETECTIONS];
+	uint8_t n_detections;
+	uint8_t fault;
+};
+
 struct laserarray {
 	FILE *devfile;
 	libusb_device_handle *usbdev;
-
-	struct {
-		pthread_rwlock_t rwlock;
-		int64_t update_time_us; /* UNIX time of last update in us */
-		uint16_t ranges[LASERARRAY_MAX_DETECTIONS];
-		uint8_t n_detections;
-		uint8_t enabled;
-	} sensor[LASERARRAY_NUM_SENSORS];
+	pthread_t rx_thread;
+	struct sensor sensor[LASERARRAY_NUM_SENSORS];
 };
 
 static int is_laserarray_device(libusb_device_handle *handle);
 static int maybe_init_usbctx(void);
 static int map_libusb_error(int libusb_errno);
+static void *run_rx_thread(void *device);
+static void handle_sensor_data(struct laserarray *dev,
+                               const struct laserarray_sensor_data *msg);
+static void handle_fault(struct laserarray *dev,
+                         const struct laserarray_fault *msg);
+static int64_t current_time(void);
 
 static libusb_context *usbctx = NULL;
 
@@ -47,7 +59,7 @@ int laserarray_open(const char *devicepath, laserarray **dev_out)
 	}
 	memset(dev, 0, sizeof(*dev));
 	for (i = 0; i < LASERARRAY_NUM_SENSORS; i++) {
-		pthread_rwlock_init(&dev->sensor[i].rwlock, NULL);
+		pthread_rwlock_init(&dev->sensor[i].lock, NULL);
 	}
 
 	dev->devfile = fopen(devicepath, "r+");
@@ -74,9 +86,16 @@ int laserarray_open(const char *devicepath, laserarray **dev_out)
 		goto err_close_dev;
 	}
 
+	if (pthread_create(&dev->rx_thread, NULL, run_rx_thread, dev) != 0) {
+		rc = LASERARRAY_EERRNO;
+		goto err_release_interface;
+	}
+
 	*dev_out = dev;
 	return 0;
 
+err_release_interface:
+        libusb_release_interface(dev->usbdev, 0);
 err_close_dev:
 	libusb_close(dev->usbdev);
 err_close_file:
@@ -103,10 +122,35 @@ int laserarray_disable_sensor(laserarray *dev, int sensor_id)
 	return map_libusb_error(rc);
 }
 
-int laserarray_get_detections(const laserarray *dev, int sensor_id,
-                              uint16_t *ranges, uint64_t *timestamp_us)
+int laserarray_get_detections(laserarray *dev, int sensor_id,
+                              uint16_t *ranges, int64_t *timestamp_us)
 {
-	return -LASERARRAY_ENOTIMPL;
+	int rc;
+	struct sensor *s;
+
+	s = &dev->sensor[sensor_id];
+
+	pthread_rwlock_rdlock(&s->lock);
+
+	/* If the sensor isn't enabled, we don't have any data for it */
+	if (current_time() - s->update_time_us > STALE_DATA_THRESHOLD) {
+		rc = -LASERARRAY_ENODATA;
+		goto unlock;
+	}
+
+	/* Copy out the last received data */
+	rc = s->n_detections;
+	if (timestamp_us != NULL) {
+		*timestamp_us = s->update_time_us;
+	}
+	if (ranges != NULL) {
+		memcpy(ranges, s->ranges,
+		       s->n_detections * sizeof(s->ranges[0]));
+	}
+
+unlock:
+	pthread_rwlock_unlock(&s->lock);
+	return rc;
 }
 
 int laserarray_reset(laserarray *dev, int sensor_id)
@@ -116,6 +160,7 @@ int laserarray_reset(laserarray *dev, int sensor_id)
 
 void laserarray_close(laserarray *dev)
 {
+	pthread_kill(dev->rx_thread, 9);
         libusb_release_interface(dev->usbdev, 0);
         libusb_attach_kernel_driver(dev->usbdev, 0);
         libusb_close(dev->usbdev);
@@ -215,4 +260,77 @@ static int is_laserarray_device(libusb_device_handle *handle)
 	}
 
 	return strcmp((char *) stringdesc, PRODUCT_STRING) == 0;
+}
+
+static void *run_rx_thread(void *device)
+{
+	struct laserarray *dev;
+	union {
+		uint8_t type;
+		struct laserarray_sensor_data sensor_data;
+		struct laserarray_fault fault;
+	} msg;
+
+	dev = device;
+	while (1) {
+		int rc;
+		int n_transferred;
+
+		rc = libusb_interrupt_transfer(dev->usbdev, 0x81,
+		                               (uint8_t *) &msg, sizeof(msg),
+					       &n_transferred, 1000);
+
+		if (rc != 0) {
+			continue;
+		}
+
+		switch (msg.type) {
+		case LASERARRAY_MSG_SENSOR_DATA:
+			handle_sensor_data(device, &msg.sensor_data);
+			break;
+		case LASERARRAY_MSG_FAULT:
+			break;
+		default:
+			break;
+		}
+	}
+
+	pthread_exit(0);
+}
+
+static void handle_sensor_data(struct laserarray *dev,
+                               const struct laserarray_sensor_data *msg)
+{
+	int i;
+	int n_detections;
+	struct sensor *s;
+
+	s = &dev->sensor[msg->sensor_id];
+
+	if (msg->n_detections > LASERARRAY_MAX_DETECTIONS) {
+		n_detections = LASERARRAY_MAX_DETECTIONS;
+	} else {
+		n_detections = msg->n_detections;
+	}
+
+	pthread_rwlock_wrlock(&s->lock);
+	s->update_time_us = current_time();
+	s->n_detections = n_detections;
+	for (i = 0; i < n_detections; i++) {
+		s->ranges[i] = msg->ranges[i];
+	}
+	pthread_rwlock_unlock(&s->lock);
+}
+
+static void handle_fault(struct laserarray *dev,
+                         const struct laserarray_fault *msg)
+{
+}
+
+static int64_t current_time(void)
+{
+	struct timeval t;
+
+	gettimeofday(&t, NULL);
+	return (t.tv_sec * 1000000L) + t.tv_usec;
 }
