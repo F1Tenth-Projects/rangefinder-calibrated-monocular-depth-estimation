@@ -289,6 +289,7 @@ static void *run_rx_thread(void *device)
 			handle_sensor_data(device, &msg.sensor_data);
 			break;
 		case LASERARRAY_MSG_FAULT:
+			handle_fault(device, &msg.fault);
 			break;
 		default:
 			break;
@@ -325,6 +326,12 @@ static void handle_sensor_data(struct laserarray *dev,
 static void handle_fault(struct laserarray *dev,
                          const struct laserarray_fault *msg)
 {
+	struct sensor *s;
+
+	s = &dev->sensor[msg->sensor_id];
+	pthread_rwlock_wrlock(&s->lock);
+	s->fault = msg->fault;
+	pthread_rwlock_unlock(&s->lock);
 }
 
 static int64_t current_time(void)
