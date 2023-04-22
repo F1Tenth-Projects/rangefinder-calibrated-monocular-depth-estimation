@@ -1,22 +1,33 @@
+#include <samd51.h>
 #include <usb.h>
 #include <sensor.h>
 #include <panic.h>
+#include <gpio.h>
 #include <vl53lx_api.h>
 #include <laserarray-common/usbproto.h>
 
 static void handle_fault(struct sensor *s, VL53LX_Error e);
 
-void sensor_init(struct sensor *s, uint8_t sensor_id, uint8_t i2c_addr)
+void sensor_init(struct sensor *s, uint8_t sensor_id, uint8_t i2c_addr,
+                 uint8_t xshut_bank, uint8_t xshut_pin)
 {
 	int rc;
 
 	memset(s, 0, sizeof(*s));
 	s->sensor_id = sensor_id;
-	s->dev.i2c_slave_address = i2c_addr;
+	s->xshut_port_pin = xshut_pin;
+	s->xshut_port_bank = xshut_bank;
+	s->dev.i2c_slave_address = 0x29;  // default address
 	s->dev.comms_type = 0;
 	s->dev.comms_speed_khz = 100;
 
+	gpio_set_value(xshut_bank, xshut_pin, 1);
+
 	while (VL53LX_WaitDeviceBooted(&s->dev) == 0);
+	if ((rc = VL53LX_SetDeviceAddress(&s->dev, i2c_addr << 1)) != 0) {
+		panic();
+	}
+	s->dev.i2c_slave_address = i2c_addr;
 	if ((rc = VL53LX_DataInit(&s->dev)) != 0) {
 		panic();
 	}
