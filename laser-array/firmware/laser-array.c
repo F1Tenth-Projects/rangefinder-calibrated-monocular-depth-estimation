@@ -17,7 +17,10 @@ const struct {
 	uint8_t i2c_addr;
 } sensor_cfg[LASERARRAY_NUM_SENSORS] = {
 	{2, 0, 0x10},
-	{2, 1, 0x11}
+	{2, 1, 0x11},
+	{2, 2, 0x12},
+	{2, 3, 0x13},
+	{1, 4, 0x14}
 };
 
 int main()
