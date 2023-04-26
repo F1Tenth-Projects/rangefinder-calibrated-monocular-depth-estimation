@@ -1,0 +1,162 @@
+connectors:
+  Dev Board:
+    show_pincount: false
+    manufacturer: Adafruit
+    mpn: 4064 — Metro M4+ Grand Central
+    type: 2.54mm 1x1 Dupont Connectors
+    subtype: male
+    pins: [3V3, GND, D1, D3, D4, D5, D6, D7, D13]
+    pinlabels:
+      - 3V3
+      - GND
+      - SCL
+      - XSHUT1
+      - XSHUT2
+      - XSHUT3
+      - XSHUT4
+      - XSHUT5
+      - SDA
+    notes: |
+      Note: Each label above represents a
+      separate 1x1 Dupont connector that
+      connects individually to the named pin
+      on the development board.
+
+  TOF Sensor 1:
+    show_pincount: false
+    manufacturer: Adafruit
+    mpn: 5425 — VL53L4CX Breakout Board
+    type: 2.54mm 1x1 Dupont Connectors
+    subtype: female
+    pins: [VIN, GND, SCL, SDA, GPIO, XSHUT]
+    notes: |
+      Note: Each label above represents a
+      separate 1x1 Dupont connector that
+      connects individually to the named pin
+      on the breakout board.
+
+  Power Splice: &splice
+    ignore_in_bom: true
+    show_name: false
+    type: Splice
+    style: simple
+  Ground Splice:
+    <<: *splice
+  SCL Splice:
+    <<: *splice
+  SDA Splice:
+    <<: *splice
+
+  Note 1:
+    show_name: false
+    ignore_in_bom: true
+    type: Splice Instructions
+    style: simple
+    notes: |
+      Remove 2cm of insulation from the center of a 20cm section of wire.
+
+      Strip end of a 10cm length of wire and twist together with the exposed
+      section of the 20cm wire. Join with solder.
+
+      Apply 4mm diameter heatshrink tubing over soldered joint.
+
+cables:
+  Power Fanout: &fanout
+    length: 10 cm
+    gauge: 24 AWG
+    colors: [RD]
+    wirecount: 7
+    shield: false
+  Ground Fanout:
+    <<: *fanout
+    colors: [BK]
+  SCL Fanout:
+    <<: *fanout
+    colors: [BU]
+  SDA Fanout:
+    <<: *fanout
+    colors: [GN]
+
+  Power Trunk: &trunk
+    length: 10 cm
+    gauge: 24 AWG
+    colors: [RD]
+    wirecount: 1
+    shield: false
+  Ground Trunk:
+    <<: *trunk
+    colors: [BK]
+  SCL Trunk:
+    <<: *trunk
+    colors: [BU]
+  SDA Trunk:
+    <<: *trunk
+    colors: [GN]
+
+  XSHUT:
+    length: 20 cm
+    gauge: 24 AWG
+    colors: [VT, OG, YE, WH, BN]
+    wirecount: 5
+    shield: false
+
+connections:
+  -
+    - Dev Board: [3V3]
+    - Power Trunk: [1]
+    - Power Splice: [1]
+  -
+    - Power Splice: [1, 1, 1, 1, 1, 1, 1]
+    - Power Fanout: [1-7]
+  -
+    - Power Fanout: [7]
+    - TOF Sensor 1: [VIN]
+
+  -
+    - Dev Board: [GND]
+    - Ground Trunk: [1]
+    - Ground Splice: [1]
+  -
+    - Ground Splice: [1, 1, 1, 1, 1, 1, 1]
+    - Ground Fanout: [1-7]
+  -
+    - Ground Fanout: [7]
+    - TOF Sensor 1: [GND]
+
+  -
+    - Dev Board: [SCL]
+    - SCL Trunk: [1]
+    - SCL Splice: [1]
+  -
+    - SCL Splice: [1, 1, 1, 1, 1, 1, 1]
+    - SCL Fanout: [1-7]
+  -
+    - SCL Fanout: [1]
+    - TOF Sensor 1: [SCL]
+
+  -
+    - Dev Board: [SDA]
+    - SDA Trunk: [1]
+    - SDA Splice: [1]
+  -
+    - SDA Splice: [1, 1, 1, 1, 1, 1, 1]
+    - SDA Fanout: [1-7]
+  -
+    - SDA Fanout: [1]
+    - TOF Sensor 1: [SDA]
+
+  -
+    - Dev Board: [XSHUT1, XSHUT2, XSHUT3, XSHUT4, XSHUT5]
+    - XSHUT: [1, 2, 3, 4, 5]
+  -
+    - XSHUT: [1]
+    - TOF Sensor 1: [XSHUT]
+
+additional_bom_items:
+  -
+    description: Heat Shrink Tubing, 4mm dia x 35mm len
+    qty: 4
+
+options:
+  color_mode: FULL
+  fontname: Noto Sans
