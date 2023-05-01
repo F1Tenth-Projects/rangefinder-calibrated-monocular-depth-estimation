@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef LASERARRAY_H
 #define LASERARRAY_H
 
@@ -67,4 +71,8 @@ const char *laserarray_strerror(int laserarray_errnum);
 const char *laserarray_error_name(int laserarray_errnum);
 
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
