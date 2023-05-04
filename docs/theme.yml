@@ -19,7 +19,8 @@ header:
       content: 'image::penn-logo.png[width=120]'
     right:
       content: |
-        Spring 2023 ESE615 Final Project +
+        ESE615 Final Project +
+        Spring 2023 
         {banner-subtitle}
   verso:
     left:

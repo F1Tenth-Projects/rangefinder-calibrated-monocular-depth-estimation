@@ -1,12 +1,13 @@
 ADOC = asciidoctor-pdf
-ADOCFLAGS = -a pdf-theme=theme.yml
+ADOCFLAGS = -a pdf-theme=theme.yml -r ./bibliography.rb
 
 TEX = pdflatex
 TEXFLAGS = -halt-on-error -output-directory $(dir $@)
 
-DOC_LIST = proposal.pdf
+DOC_LIST = proposal.pdf final-report.pdf
 CLEAN_LIST += $(DOC_LIST) proposal.aux proposal.log
 
+final-report.pdf-deps := coverpage.adoc theme.yml
 
 docs: $(DOC_LIST)
 
