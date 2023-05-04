@@ -11,7 +11,9 @@ static void handle_fault(struct sensor *s, VL53LX_Error e);
 void sensor_init(struct sensor *s, uint8_t sensor_id, uint8_t i2c_addr,
                  uint8_t xshut_bank, uint8_t xshut_pin)
 {
-	int rc;
+	/* Make 'rc' volatile so it isn't optimized out and can be checked from
+	 * the debugger on an initialization failure. */
+	volatile int rc;
 
 	memset(s, 0, sizeof(*s));
 	s->sensor_id = sensor_id;
@@ -29,6 +31,11 @@ void sensor_init(struct sensor *s, uint8_t sensor_id, uint8_t i2c_addr,
 	}
 	s->dev.i2c_slave_address = i2c_addr;
 	if ((rc = VL53LX_DataInit(&s->dev)) != 0) {
+		panic();
+	}
+
+	rc = VL53LX_SetDistanceMode(&s->dev, VL53LX_DISTANCEMODE_LONG);
+	if (rc != 0) {
 		panic();
 	}
 }
