@@ -41,6 +41,9 @@ def main():
 
     laserdev = laserarray.LaserArray("/dev/laserarray")
 
+    # create a publisher for the laserscan message
+    laserscan_pub = rospy.Publisher('scan', LaserScan, queue_size=50)
+
     while True:
         midas_map, fps = get_midas_map(cap)
 
@@ -49,7 +52,8 @@ def main():
         if absolute_depth_map is None:
             continue
 
-        publish_laserscan(absolute_depth_map)
+        # publish the laserscan message
+        laserscan_pub.publish(absolute_depth_map)
 
         print("FPS", fps)
         cv2.imshow('Depth Map', midas_map)
@@ -228,8 +232,6 @@ def publish_laserscan(depth_map):
     # get center row of depth map of size 540x960
     depth_map = depth_map[270, :]
     laserscan.ranges = depth_map.flatten().tolist()
-    laserscan_pub = rospy.Publisher('scan', LaserScan, queue_size=50)
-    laserscan_pub.publish(laserscan)
 
 
 if __name__ == "__main__":
