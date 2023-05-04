@@ -4,7 +4,6 @@ import numpy as np
 import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
-import common
 import time
 
 
@@ -35,9 +34,17 @@ def main():
 
     while True:
         midas_map,fps = get_midas_map(cap)
-        print(fps)
+        print("FPS",fps)
         cv2.imshow('Depth Map', midas_map)
-        cv2.waitKey(0)
+       
+        # Wait for a key press to exit
+        if cv2.waitKey(1) == ord('q'):
+            break
+    
+    # Release the camera and close the window
+    cap.release()
+    cv2.destroyAllWindows()
+
     
         # sensor_data = get_sensor_data()
         # absolute_depth_map = fuse_data(midas_map, sensor_data)
