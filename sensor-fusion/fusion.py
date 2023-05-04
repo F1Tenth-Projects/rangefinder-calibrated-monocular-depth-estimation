@@ -29,6 +29,11 @@ d_output = cuda.mem_alloc(output_size)
 stream = cuda.Stream()
 
 
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+
 def main():
     cap = cv2.VideoCapture("/dev/video4")
     cap.set(cv2.CAP_PROP_FPS,60)
@@ -52,9 +57,10 @@ def main():
     # Release the camera and close the window
     cap.release()
 
+
 def fuse_data(midas_map, sensor_data):
     ''' fuse_data(midas_map, [[range, ...], ...]) -> cv2.Mat
-    
+
     Takes the normalized depth map and range measurements from each
     sensor and fuses them into a depth map with absolute range values.
     Returns a cv2.Map object containing absolute depth measurements.
@@ -71,9 +77,10 @@ def fuse_data(midas_map, sensor_data):
         scale = calc_scale_factor(img[i], sensor_data[i])
         scale_factors.append(scale)
 
-    merged_scale = merge_scaling_factors(scale_factors)
+    merged_scale = merge_scale_factors(scale_factors)
 
     return midas_map * merged_scale
+
 
 def calc_scale_factor(imageslice, rangelist):
     ''' calc_scale_factor(imageslice, [range, ...]) -> float
@@ -82,15 +89,37 @@ def calc_scale_factor(imageslice, rangelist):
     determines a floating point scaling factor to convert the
     normalized distances to absolute distances.
     '''
-    raise NotImplementedError()
+    # Calculate the histogram of the image slice
+    hist = cv2.calcHist([imageslice], [0], None, [256], [0, 256])
 
-def merge_scale_factor(scale_list):
-    ''' merge_scale_factor([scale, ...]) -> float
+    # Find the peak of the histogram
+    peak = np.argmax(hist)
+
+    # Find the minimum value of the range list
+    min_range = np.min(rangelist)
+
+    # if the peak or the min_range is 0, then the scaling factor is 0
+    if peak == 0 or min_range == 0:
+        return 0
+
+    # Calculate the scaling factor
+    scaling_factor = min_range / peak
+
+    return scaling_factor
+
+
+def merge_scale_factors(scale_list):
+    ''' merge_scale_factors([scale, ...]) -> float
 
     Intelligently determine the global scaling factor for the depth
-    map based on the list of image segment scaling factors provided. 
+    map based on the list of image segment scaling factors provided.
     '''
-    raise NotImplementedError()
+    # skip any scale factors that are 0
+    scale_list = [x for x in scale_list if x != 0]
+    merged_scale = np.mean(scale_list)
+
+    return merged_scale
+
 
 def get_midas_map(cap):
     ''' get_midas_map(cap) -> cv2.Mat
@@ -152,6 +181,7 @@ def get_sensor_data(device):
         sensor_data.append(ranges)
 
     return sensor_data
+
 
 def publish_laserscan(depth_map):
     ''' publish_laserscan(depth_map):
