@@ -59,6 +59,7 @@ def main():
 
     while True:
         midas_map, fps = get_midas_map(cap)
+        midas_map = (1.0 / (255 - midas_map) * 2048).astype(np.uint8)
 
         sensor_data = get_sensor_data(laserdev)
         for i in range(len(sensor_data)):
