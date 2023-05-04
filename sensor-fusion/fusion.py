@@ -43,6 +43,9 @@ def main():
 
         sensor_data = get_sensor_data(laserdev)
         absolute_depth_map = fuse_data(midas_map, sensor_data)
+        if absolute_depth_map is None:
+            continue
+
         # publish_laserscan(absolute_depth_map)
 
         print("FPS",fps)
@@ -73,10 +76,17 @@ def fuse_data(midas_map, sensor_data):
     scale_factors = []
     for i in range(0, len(img)):
         scale = calc_scale_factor(img[i], sensor_data[i])
-        scale_factors.append(scale)
+        if scale is not None:
+            scale_factors.append(scale)
+
+    if len(scale_factors) == 0:
+        return None
 
     merged_scale = merge_scale_factors(scale_factors)
-    print("Scale factors: ", scale_factors, "merged: ", merged_scale)
+    msg = ""
+    for factor in scale_factors:
+        msg += "%.3f  " % factor
+    print("Scale factors: %s   merged: %.3f" % (msg, merged_scale))
 
     return midas_map * merged_scale
 
@@ -88,6 +98,9 @@ def calc_scale_factor(imageslice, rangelist):
     determines a floating point scaling factor to convert the
     normalized distances to absolute distances.
     '''
+    if len(rangelist) == 0:
+        return None
+
     # Calculate the histogram of the image slice
     hist = cv2.calcHist([imageslice], [0], None, [256], [0, 256])
 
@@ -98,12 +111,11 @@ def calc_scale_factor(imageslice, rangelist):
     rangelist = np.array(rangelist)
 
     # Find the minimum value of the range list
-    print(rangelist)
     min_range = np.min(rangelist)
 
     # if the peak or the min_range is 0, then the scaling factor is 0
     if peak == 0 or min_range == 0:
-        return 0
+        return None
 
     # Calculate the scaling factor
     scaling_factor = min_range / peak
