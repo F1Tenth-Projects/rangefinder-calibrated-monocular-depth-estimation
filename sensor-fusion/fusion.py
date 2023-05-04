@@ -7,6 +7,9 @@ import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
 import time
+import rospy
+from sensor_msgs.msg import LaserScan
+import sensor_msgs.msg
 
 
 # Load the TensorRT engine
@@ -46,9 +49,9 @@ def main():
         if absolute_depth_map is None:
             continue
 
-        # publish_laserscan(absolute_depth_map)
+        publish_laserscan(absolute_depth_map)
 
-        print("FPS",fps)
+        print("FPS", fps)
         cv2.imshow('Depth Map', midas_map)
 
         # Wait for a key press to exit
@@ -207,7 +210,26 @@ def publish_laserscan(depth_map):
     Publishes the ROS LaserScan message using the scaled depth map data.
     'depth_map' is a cv2.Mat object.
     '''
-    raise NotImplementedError()
+    # initialize the ROS node
+    rospy.init_node('laser_scan_publisher')
+
+    # Create a LaserScan message to publish absolute_depth_map
+    laserscan = LaserScan()
+
+    laserscan = sensor_msgs.msg.LaserScan()
+    laserscan.header.stamp = rospy.Time.now()
+    laserscan.header.frame_id = "laser_frame"
+    laserscan.angle_min = -0.75
+    laserscan.angle_max = 0.75
+    laserscan.angle_increment = 0.005
+    laserscan.range_min = 0.0
+    laserscan.range_max = 6.0
+
+    # get center row of depth map of size 540x960
+    depth_map = depth_map[270, :]
+    laserscan.ranges = depth_map.flatten().tolist()
+    laserscan_pub = rospy.Publisher('scan', LaserScan, queue_size=50)
+    laserscan_pub.publish(laserscan)
 
 
 if __name__ == "__main__":
