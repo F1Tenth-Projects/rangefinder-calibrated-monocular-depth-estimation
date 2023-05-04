@@ -7,7 +7,8 @@ import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
 import time
-import rospy
+import rclpy
+import rclpy.node
 from sensor_msgs.msg import LaserScan
 import sensor_msgs.msg
 
@@ -34,15 +35,26 @@ d_output = cuda.mem_alloc(output_size)
 # Create a CUDA stream to run inference asynchronously
 stream = cuda.Stream()
 
+class LaserScanPublisher(rclpy.node.Node):
+    def __init__(self):
+        super().__init__('laser_scan_publisher')
+        self.pub = self.create_publisher(LaserScan, 'laser_depth_map', 10)
+
+    def publish(self, laserscan):
+        self.pub.publish(laserscan)
+
 
 def main():
     cap = cv2.VideoCapture("/dev/video4")
     cap.set(cv2.CAP_PROP_FPS, 60)
 
     laserdev = laserarray.LaserArray("/dev/laserarray")
+    for i in range(0, 5):
+        laserdev.enable_sensor(i)
 
     # create a publisher for the laserscan message
-    laserscan_pub = rospy.Publisher('scan', LaserScan, queue_size=50)
+    rclpy.init()
+    laserscan_pub = LaserScanPublisher()
 
     while True:
         midas_map, fps = get_midas_map(cap)
@@ -53,7 +65,7 @@ def main():
             continue
 
         # publish the laserscan message
-        laserscan_pub.publish(absolute_depth_map)
+        publish_laserscan(laserscan_pub, absolute_depth_map)
 
         print("FPS", fps)
         cv2.imshow('Depth Map', midas_map)
@@ -64,6 +76,7 @@ def main():
 
     # Release the camera and close the window
     cap.release()
+    rclpy.shutdown()
 
 
 def fuse_data(midas_map, sensor_data):
@@ -208,20 +221,18 @@ def get_sensor_data(device):
     return sensor_data
 
 
-def publish_laserscan(depth_map):
+def publish_laserscan(publisher, depth_map):
     ''' publish_laserscan(depth_map):
 
     Publishes the ROS LaserScan message using the scaled depth map data.
     'depth_map' is a cv2.Mat object.
     '''
-    # initialize the ROS node
-    rospy.init_node('laser_scan_publisher')
 
     # Create a LaserScan message to publish absolute_depth_map
     laserscan = LaserScan()
 
     laserscan = sensor_msgs.msg.LaserScan()
-    laserscan.header.stamp = rospy.Time.now()
+    laserscan.header.stamp = rclpy.time.Time().to_msg()
     laserscan.header.frame_id = "laser_frame"
     laserscan.angle_min = -0.75
     laserscan.angle_max = 0.75
@@ -232,6 +243,7 @@ def publish_laserscan(depth_map):
     # get center row of depth map of size 540x960
     depth_map = depth_map[270, :]
     laserscan.ranges = depth_map.flatten().tolist()
+    publisher.publish(laserscan)
 
 
 if __name__ == "__main__":
