@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import matplotlib.pyplot as plt
 import laserarray
 import cv2
@@ -113,7 +114,6 @@ def fuse_data(midas_map, sensor_data):
 
     return midas_map * merged_scale
 
-
 def calc_scale_factor(imageslice, rangelist):
     ''' calc_scale_factor(imageslice, [range, ...]) -> float
 
@@ -125,7 +125,13 @@ def calc_scale_factor(imageslice, rangelist):
         return None
 
     # Calculate the histogram of the image slice
-    hist = cv2.calcHist([imageslice], [0], None, [256], [0, 256])
+    hist = cv2.calcHist([imageslice], [0], None, [64], [0, 256])
+
+    # Apply gaussian filter
+    hist = hist[:,0]
+    hist = np.convolve(hist,
+                       np.array([1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]),
+                       mode='valid')
 
     # Find the peak of the histogram
     peak = np.argmax(hist)
@@ -141,7 +147,7 @@ def calc_scale_factor(imageslice, rangelist):
         return None
 
     # Calculate the scaling factor
-    scaling_factor = min_range / peak
+    scaling_factor = min_range / (peak * 256 / 64)
 
     return scaling_factor
 
@@ -154,7 +160,7 @@ def merge_scale_factors(scale_list):
     '''
     # skip any scale factors that are 0
     scale_list = [x for x in scale_list if x != 0]
-    merged_scale = np.mean(scale_list)
+    merged_scale = np.min(scale_list)
 
     return merged_scale
 
@@ -234,12 +240,15 @@ def publish_laserscan(publisher, depth_map):
     # Create a LaserScan message to publish absolute_depth_map
     laserscan = LaserScan()
 
+    fov_rad = (87.0 * math.pi / 180)
+    image_width = 960
+
     laserscan = sensor_msgs.msg.LaserScan()
     laserscan.header.stamp = rclpy.time.Time().to_msg()
     laserscan.header.frame_id = "laser_frame"
-    laserscan.angle_min = -0.75
-    laserscan.angle_max = 0.75
-    laserscan.angle_increment = 0.005
+    laserscan.angle_min = -fov_rad / 2
+    laserscan.angle_max = fov_rad / 2
+    laserscan.angle_increment = fov_rad / image_width
     laserscan.range_min = 0.0
     laserscan.range_max = 6.0
 
