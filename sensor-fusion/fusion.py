@@ -41,14 +41,12 @@ def main():
         if cv2.waitKey(1) == ord('q'):
             break
     
-    # Release the camera and close the window
-    cap.release()
-    cv2.destroyAllWindows()
-
-    
         # sensor_data = get_sensor_data()
         # absolute_depth_map = fuse_data(midas_map, sensor_data)
         # publish_laserscan(absolute_depth_map)
+
+    # Release the camera and close the window
+    cap.release()
 
 def fuse_data(midas_map, sensor_data):
     ''' fuse_data(midas_map, [[range, ...], ...]) -> cv2.Mat
