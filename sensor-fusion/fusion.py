@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import cv2
+
 def main():
+    cap = cv2.VideoCapture("/dev/video4")
+
     while True:
-        midas_map = get_midas_map()
+        midas_map = get_midas_map(cap)
         sensor_data = get_sensor_data()
         absolute_depth_map = fuse_data(midas_map, sensor_data)
         publish_laserscan(absolute_depth_map)
@@ -47,10 +51,12 @@ def merge_scale_factor(scale_list):
     '''
     raise NotImplementedError()
 
-def get_midas_map():
-    ''' get_midas_map() -> cv2.Mat
+def get_midas_map(device):
+    ''' get_midas_map(device) -> cv2.Mat
 
     Returns the greyscale normalized depth map as an OpenCV Mat.
+    'device' is an cv2.VideoCapture device used as an input to the
+    depth inference algorithm.
     '''
     raise NotImplementedError()
 
