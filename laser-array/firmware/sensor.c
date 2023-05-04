@@ -29,12 +29,20 @@ void sensor_init(struct sensor *s, uint8_t sensor_id, uint8_t i2c_addr,
 	if ((rc = VL53LX_SetDeviceAddress(&s->dev, i2c_addr << 1)) != 0) {
 		panic();
 	}
+
 	s->dev.i2c_slave_address = i2c_addr;
 	if ((rc = VL53LX_DataInit(&s->dev)) != 0) {
 		panic();
 	}
 
 	rc = VL53LX_SetDistanceMode(&s->dev, VL53LX_DISTANCEMODE_LONG);
+	if (rc != 0) {
+		panic();
+	}
+
+	rc = VL53LX_SetTuningParameter(&s->dev,
+	                               VL53LX_TUNINGPARM_RESET_MERGE_THRESHOLD,
+				       15000 + 5000);
 	if (rc != 0) {
 		panic();
 	}
