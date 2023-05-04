@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import matplotlib.pyplot as plt
 import laserarray
 import cv2
 import numpy as np
@@ -20,8 +21,10 @@ engine = runtime.deserialize_cuda_engine(engine_data)
 context = engine.create_execution_context()
 
 # Allocate memory on the GPU for the input and output data
-input_size = trt.volume(engine.get_binding_shape(0)) * engine.max_batch_size * np.dtype(np.float32).itemsize
-output_size = trt.volume(engine.get_binding_shape(1)) * engine.max_batch_size * np.dtype(np.float32).itemsize
+input_size = trt.volume(engine.get_binding_shape(0)) * \
+    engine.max_batch_size * np.dtype(np.float32).itemsize
+output_size = trt.volume(engine.get_binding_shape(
+    1)) * engine.max_batch_size * np.dtype(np.float32).itemsize
 d_input = cuda.mem_alloc(input_size)
 d_output = cuda.mem_alloc(output_size)
 
@@ -29,25 +32,20 @@ d_output = cuda.mem_alloc(output_size)
 stream = cuda.Stream()
 
 
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-
 def main():
     cap = cv2.VideoCapture("/dev/video4")
-    cap.set(cv2.CAP_PROP_FPS,60)
+    cap.set(cv2.CAP_PROP_FPS, 60)
 
     laserdev = laserarray.LaserArray("/dev/laserarray")
 
     while True:
-        midas_map,fps = get_midas_map(cap)
-    
+        midas_map, fps = get_midas_map(cap)
+
         sensor_data = get_sensor_data(laserdev)
         # absolute_depth_map = fuse_data(midas_map, sensor_data)
         # publish_laserscan(absolute_depth_map)
 
-        print("FPS",fps)
+        print("FPS", fps)
         cv2.imshow('Depth Map', midas_map)
 
         # Wait for a key press to exit
@@ -95,6 +93,9 @@ def calc_scale_factor(imageslice, rangelist):
     # Find the peak of the histogram
     peak = np.argmax(hist)
 
+    # convert pythonlist to numpy array
+    rangelist = np.array(rangelist)
+
     # Find the minimum value of the range list
     min_range = np.min(rangelist)
 
@@ -139,34 +140,37 @@ def get_midas_map(cap):
 
     # Add a batch dimension to the input tensor
     input_image = img_array[np.newaxis, ...]
-    
 
     # Copy the input data to the GPU memory
     cuda.memcpy_htod_async(d_input, input_image.ravel(), stream)
 
     # Execute inference on the TensorRT engine
-    context.execute_async_v2(bindings=[int(d_input), int(d_output)], stream_handle=stream.handle)
+    context.execute_async_v2(
+        bindings=[int(d_input), int(d_output)], stream_handle=stream.handle)
 
     # Synchronize the CUDA stream and copy the output data from the GPU memory
     stream.synchronize()
-    output_data = np.empty([engine.max_batch_size] + list(engine.get_binding_shape(1)[1:]), dtype=np.float32)
+    output_data = np.empty([engine.max_batch_size] +
+                           list(engine.get_binding_shape(1)[1:]), dtype=np.float32)
     cuda.memcpy_dtoh_async(output_data, d_output, stream)
-    
+
     depth = output_data[0]
 
     # Invert the depth map (change this for a different convention)
     depth = np.max(depth) - depth
 
-    depth_map = cv2.normalize(depth, None, 0, 255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    depth_map = cv2.normalize(
+        depth, None, 0, 255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
-    depth_map = cv2.resize(depth_map,(960,540))
-    
+    depth_map = cv2.resize(depth_map, (960, 540))
+
     # Calculate FPS
     elapsed_time = time.time() - start_time
     fps = 1 / elapsed_time
-    
+
     return depth_map, fps
-   
+
+
 def get_sensor_data(device):
     ''' get_sensor_data(laserarray_device) -> [[int, ...], ...]
 
