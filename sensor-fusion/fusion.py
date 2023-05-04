@@ -1,15 +1,47 @@
 #!/usr/bin/env python3
-
 import cv2
+import numpy as np
+import tensorrt as trt
+import pycuda.driver as cuda
+import pycuda.autoinit
+import common
+import time
+
+
+# Load the TensorRT engine
+TRT_LOGGER = trt.Logger(trt.Logger.Severity.ERROR)
+engine_file_path = "engine16.trt"
+with open(engine_file_path, "rb") as f:
+    engine_data = f.read()
+runtime = trt.Runtime(TRT_LOGGER)
+engine = runtime.deserialize_cuda_engine(engine_data)
+
+# Create a context for executing inference on the TensorRT engine
+context = engine.create_execution_context()
+
+# Allocate memory on the GPU for the input and output data
+input_size = trt.volume(engine.get_binding_shape(0)) * engine.max_batch_size * np.dtype(np.float32).itemsize
+output_size = trt.volume(engine.get_binding_shape(1)) * engine.max_batch_size * np.dtype(np.float32).itemsize
+d_input = cuda.mem_alloc(input_size)
+d_output = cuda.mem_alloc(output_size)
+
+# Create a CUDA stream to run inference asynchronously
+stream = cuda.Stream()
+
 
 def main():
     cap = cv2.VideoCapture("/dev/video4")
+    cap.set(cv2.CAP_PROP_FPS,60)
 
     while True:
-        midas_map = get_midas_map(cap)
-        sensor_data = get_sensor_data()
-        absolute_depth_map = fuse_data(midas_map, sensor_data)
-        publish_laserscan(absolute_depth_map)
+        midas_map,fps = get_midas_map(cap)
+        print(fps)
+        cv2.imshow('Depth Map', midas_map)
+        cv2.waitKey(0)
+    
+        # sensor_data = get_sensor_data()
+        # absolute_depth_map = fuse_data(midas_map, sensor_data)
+        # publish_laserscan(absolute_depth_map)
 
 def fuse_data(midas_map, sensor_data):
     ''' fuse_data(midas_map, [[range, ...], ...]) -> cv2.Mat
@@ -51,15 +83,52 @@ def merge_scale_factor(scale_list):
     '''
     raise NotImplementedError()
 
-def get_midas_map(device):
-    ''' get_midas_map(device) -> cv2.Mat
+def get_midas_map(cap):
+    ''' get_midas_map(cap) -> cv2.Mat
 
     Returns the greyscale normalized depth map as an OpenCV Mat.
     'device' is an cv2.VideoCapture device used as an input to the
     depth inference algorithm.
     '''
-    raise NotImplementedError()
+    start_time = time.time()
+    # Read a frame from the camera
+    ret, frame = cap.read()
+    # Resize the image to match the input shape of the MIDAS V21 Small 256 model
+    img = cv2.resize(frame, (256, 256))
 
+    # Convert the image to a numpy array and normalize the pixel values
+    img_array = img.transpose((2, 0, 1)).astype(np.float32) / 255.0
+
+    # Add a batch dimension to the input tensor
+    input_image = img_array[np.newaxis, ...]
+    
+
+    # Copy the input data to the GPU memory
+    cuda.memcpy_htod_async(d_input, input_image.ravel(), stream)
+
+    # Execute inference on the TensorRT engine
+    context.execute_async_v2(bindings=[int(d_input), int(d_output)], stream_handle=stream.handle)
+
+    # Synchronize the CUDA stream and copy the output data from the GPU memory
+    stream.synchronize()
+    output_data = np.empty([engine.max_batch_size] + list(engine.get_binding_shape(1)[1:]), dtype=np.float32)
+    cuda.memcpy_dtoh_async(output_data, d_output, stream)
+    
+    depth = output_data[0]
+
+    # Invert the depth map (change this for a different convention)
+    depth = np.max(depth) - depth
+
+    depth_map = cv2.normalize(depth, None, 0, 255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+    depth_map = cv2.resize(depth_map,(960,540))
+    
+    # Calculate FPS
+    elapsed_time = time.time() - start_time
+    fps = 1 / elapsed_time
+    
+    return depth_map, fps
+   
 def get_sensor_data(device):
     ''' get_sensor_data(laserarray_device) -> [[int, ...], ...]
 
