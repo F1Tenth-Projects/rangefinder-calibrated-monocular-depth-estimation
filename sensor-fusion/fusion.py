@@ -90,11 +90,11 @@ def fuse_data(midas_map, sensor_data):
     Returns a cv2.Map object containing absolute depth measurements.
     '''
     img = []
-    img.append(midas_map[101:154, 0:49])
-    img.append(midas_map[101:154, 49:102])
-    img.append(midas_map[101:154, 102:155])
-    img.append(midas_map[101:154, 155:208])
-    img.append(midas_map[101:154, 208:256])
+    img.append(midas_map[186:353, 0:183])
+    img.append(midas_map[186:353, 183:381])
+    img.append(midas_map[186:353, 381:579])
+    img.append(midas_map[186:353, 579:777])
+    img.append(midas_map[186:353, 777:960])
 
     scale_factors = []
     for i in range(0, len(img)):
