@@ -59,11 +59,17 @@ def main():
 
     while True:
         midas_map, fps = get_midas_map(cap)
-        midas_map = (1.0 / (255 - midas_map) * 2048).astype(np.uint8)
+        midas_map = (1.0 / (255 - midas_map) * (1024 + 512)).astype(np.uint8)
 
         sensor_data = get_sensor_data(laserdev)
         for i in range(len(sensor_data)):
             sensor_data[i] = [x for x in sensor_data[i] if x < 6000]
+
+        for i, sensor in enumerate(sensor_data):
+            msg = "Sensor %i:" % i
+            for dist in sensor:
+                msg += "  %10i" % dist
+            print(msg)
 
         absolute_depth_map = fuse_data(midas_map, sensor_data)
         if absolute_depth_map is None:
@@ -91,6 +97,11 @@ def fuse_data(midas_map, sensor_data):
     sensor and fuses them into a depth map with absolute range values.
     Returns a cv2.Map object containing absolute depth measurements.
     '''
+    #img_w = 960
+    #img_h = 540
+    #camera_vfov = 58
+    #camera_hfov = 87
+
     img = []
     img.append(midas_map[186:353, 0:183])
     img.append(midas_map[186:353, 183:381])
@@ -100,7 +111,7 @@ def fuse_data(midas_map, sensor_data):
 
     scale_factors = []
     for i in range(0, len(img)):
-        scale = calc_scale_factor(img[i], sensor_data[i])
+        scale = calc_scale_factor(img[i], sensor_data[i], i)
         if scale is not None:
             scale_factors.append(scale)
 
@@ -115,7 +126,7 @@ def fuse_data(midas_map, sensor_data):
 
     return midas_map * merged_scale
 
-def calc_scale_factor(imageslice, rangelist):
+def calc_scale_factor(imageslice, rangelist, idx):
     ''' calc_scale_factor(imageslice, [range, ...]) -> float
 
     Takes the segment 'imageslice' of a normalized depth map and
@@ -126,7 +137,7 @@ def calc_scale_factor(imageslice, rangelist):
         return None
 
     # Calculate the histogram of the image slice
-    hist = cv2.calcHist([imageslice], [0], None, [64], [0, 256])
+    hist = cv2.calcHist([imageslice], [0], None, [256], [0, 256])
 
     # Apply gaussian filter
     hist = hist[:,0]
@@ -144,11 +155,12 @@ def calc_scale_factor(imageslice, rangelist):
     min_range = np.min(rangelist)
 
     # if the peak or the min_range is 0, then the scaling factor is 0
-    if peak == 0 or min_range == 0:
+    if (peak <= 10 or peak > 245) or min_range == 0:
         return None
 
     # Calculate the scaling factor
-    scaling_factor = min_range / (peak * 256 / 64)
+    print(idx, min_range, peak)
+    scaling_factor = min_range / peak
 
     return scaling_factor
 
@@ -161,7 +173,7 @@ def merge_scale_factors(scale_list):
     '''
     # skip any scale factors that are 0
     scale_list = [x for x in scale_list if x != 0]
-    merged_scale = np.min(scale_list)
+    merged_scale = np.mean(scale_list)
 
     return merged_scale
 
