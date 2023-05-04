@@ -60,6 +60,9 @@ def main():
         midas_map, fps = get_midas_map(cap)
 
         sensor_data = get_sensor_data(laserdev)
+        for i in range(len(sensor_data)):
+            sensor_data[i] = [x for x in sensor_data[i] if x < 6000]
+
         absolute_depth_map = fuse_data(midas_map, sensor_data)
         if absolute_depth_map is None:
             continue
