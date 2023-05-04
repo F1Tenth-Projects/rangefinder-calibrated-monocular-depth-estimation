@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import laserarray
 import cv2
 import numpy as np
 import tensorrt as trt
@@ -32,18 +33,21 @@ def main():
     cap = cv2.VideoCapture("/dev/video4")
     cap.set(cv2.CAP_PROP_FPS,60)
 
+    laserdev = laserarray.LaserArray("/dev/laserarray")
+
     while True:
         midas_map,fps = get_midas_map(cap)
+    
+        sensor_data = get_sensor_data(laserdev)
+        # absolute_depth_map = fuse_data(midas_map, sensor_data)
+        # publish_laserscan(absolute_depth_map)
+
         print("FPS",fps)
         cv2.imshow('Depth Map', midas_map)
-       
+
         # Wait for a key press to exit
         if cv2.waitKey(1) == ord('q'):
             break
-    
-        # sensor_data = get_sensor_data()
-        # absolute_depth_map = fuse_data(midas_map, sensor_data)
-        # publish_laserscan(absolute_depth_map)
 
     # Release the camera and close the window
     cap.release()
@@ -142,7 +146,12 @@ def get_sensor_data(device):
     the inner lists may contain between 0 and 8 range values.
     '''
 
-    raise NotImplementedError()
+    sensor_data = []
+    for i in range(0, 4):
+        ranges = device.get_detections(i)
+        sensor_data.append(ranges)
+
+    return sensor_data
 
 def publish_laserscan(depth_map):
     ''' publish_laserscan(depth_map):
