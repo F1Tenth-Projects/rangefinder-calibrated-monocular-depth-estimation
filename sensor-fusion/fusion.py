@@ -42,10 +42,10 @@ def main():
         midas_map, fps = get_midas_map(cap)
 
         sensor_data = get_sensor_data(laserdev)
-        # absolute_depth_map = fuse_data(midas_map, sensor_data)
+        absolute_depth_map = fuse_data(midas_map, sensor_data)
         # publish_laserscan(absolute_depth_map)
 
-        print("FPS", fps)
+        print("FPS",fps)
         cv2.imshow('Depth Map', midas_map)
 
         # Wait for a key press to exit
@@ -76,6 +76,7 @@ def fuse_data(midas_map, sensor_data):
         scale_factors.append(scale)
 
     merged_scale = merge_scale_factors(scale_factors)
+    print("Scale factors: ", scale_factors, "merged: ", merged_scale)
 
     return midas_map * merged_scale
 
@@ -97,6 +98,7 @@ def calc_scale_factor(imageslice, rangelist):
     rangelist = np.array(rangelist)
 
     # Find the minimum value of the range list
+    print(rangelist)
     min_range = np.min(rangelist)
 
     # if the peak or the min_range is 0, then the scaling factor is 0
@@ -180,8 +182,8 @@ def get_sensor_data(device):
     '''
 
     sensor_data = []
-    for i in range(0, 4):
-        ranges = device.get_detections(i)
+    for i in range(0, 5):
+        timestamp, ranges = device.get_detections(i)
         sensor_data.append(ranges)
 
     return sensor_data
