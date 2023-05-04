@@ -4,6 +4,15 @@ def main():
     while True:
         ...
 
+def fuse_data(midas_map, sensor_data):
+    ''' fuse_data(midas_map, [[range, ...], ...]) -> cv2.Mat
+    
+    Takes the normalized depth map and range measurements from each
+    sensor and fuses them into a depth map with absolute range values.
+    Returns a cv2.Map object containing absolute depth measurements.
+    '''
+    return None
+
 def get_midas_map():
     ''' get_midas_map() -> cv2.Mat
 
