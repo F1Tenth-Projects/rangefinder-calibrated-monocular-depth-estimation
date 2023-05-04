@@ -256,7 +256,7 @@ def publish_laserscan(publisher, depth_map):
     # get center row of depth map of size 540x960
     depth_map = depth_map[270, :]
     depth_map = depth_map / 1000     # convert mm to meters
-    laserscan.ranges = depth_map.flatten().tolist()
+    laserscan.ranges = list(reversed(depth_map.flatten().tolist()))
     publisher.publish(laserscan)
 
 
