@@ -36,6 +36,7 @@ d_output = cuda.mem_alloc(output_size)
 # Create a CUDA stream to run inference asynchronously
 stream = cuda.Stream()
 
+
 class LaserScanPublisher(rclpy.node.Node):
     def __init__(self):
         super().__init__('laser_scan_publisher')
@@ -97,10 +98,10 @@ def fuse_data(midas_map, sensor_data):
     sensor and fuses them into a depth map with absolute range values.
     Returns a cv2.Map object containing absolute depth measurements.
     '''
-    #img_w = 960
-    #img_h = 540
-    #camera_vfov = 58
-    #camera_hfov = 87
+    # img_w = 960
+    # img_h = 540
+    # camera_vfov = 58
+    # camera_hfov = 87
 
     img = []
     img.append(midas_map[186:353, 0:183])
@@ -126,6 +127,7 @@ def fuse_data(midas_map, sensor_data):
 
     return midas_map * merged_scale
 
+
 def calc_scale_factor(imageslice, rangelist, idx):
     ''' calc_scale_factor(imageslice, [range, ...]) -> float
 
@@ -140,7 +142,7 @@ def calc_scale_factor(imageslice, rangelist, idx):
     hist = cv2.calcHist([imageslice], [0], None, [256], [0, 256])
 
     # Apply gaussian filter
-    hist = hist[:,0]
+    hist = hist[:, 0]
     hist = np.convolve(hist,
                        np.array([1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1]),
                        mode='valid')
@@ -178,13 +180,16 @@ def merge_scale_factors(scale_list):
     return merged_scale
 
 
-def get_midas_map(cap):
-    ''' get_midas_map(cap) -> cv2.Mat
+def get_midas_map(cap, buffer_size=5):
+    ''' get_midas_map(cap, buffer_size) -> cv2.Mat
 
     Returns the greyscale normalized depth map as an OpenCV Mat.
     'device' is an cv2.VideoCapture device used as an input to the
     depth inference algorithm.
     '''
+    # Create a buffer to store previous depth maps
+    depth_buffer = []
+
     start_time = time.time()
     # Read a frame from the camera
     ret, frame = cap.read()
@@ -224,7 +229,21 @@ def get_midas_map(cap):
     elapsed_time = time.time() - start_time
     fps = 1 / elapsed_time
 
-    return depth_map, fps
+    # 0505
+    # Add current depth map to the buffer
+    depth_buffer.append(depth_map)
+
+    # Apply temporal smoothing to the depth buffer
+    if len(depth_buffer) > 1:
+        smoothed_depth_map = np.mean(depth_buffer, axis=0)
+    else:
+        smoothed_depth_map = depth_map
+
+    # If the buffer size exceeds the specified limit, remove the oldest depth map
+    if len(depth_buffer) > buffer_size:
+        depth_buffer.pop(0)
+
+    return smoothed_depth_map, fps
 
 
 def get_sensor_data(device):
