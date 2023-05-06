@@ -83,7 +83,7 @@ def main():
         publish_laserscan(laserscan_pub, depth_map)
 
         print("FPS", fps)
-        cv2.imshow('Depth Map', depth_map)
+        cv2.imshow('Depth Map', midas_map)
 
         # Wait for a key press to exit
         if cv2.waitKey(1) == ord('q'):
