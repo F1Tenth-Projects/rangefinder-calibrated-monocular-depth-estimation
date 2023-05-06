@@ -61,14 +61,6 @@ def main():
         inv_pred_depth,depth_map, fps = get_midas_map(cap)
         
         sensor_data = get_sensor_data(laserdev)
-        for i in range(len(sensor_data)):
-            sensor_data[i] = [x for x in sensor_data[i] if x < 6000]
-
-        for i, sensor in enumerate(sensor_data):
-            msg = "Sensor %i:" % i
-            for dist in sensor:
-                msg += "  %10i" % dist
-            print(msg)
 
         absolute_depth = fuse_data(inv_pred_depth, sensor_data)
         if absolute_depth is None:
@@ -105,17 +97,17 @@ def fuse_data(inv_pred_depth, sensor_data):
     # First invert the sensor values so we get act_inv_depth
     # find the minimum points in the region and correspond them to the array so we get 5(y,x) pairs
     # call the get_regress_coeffs to find w,b
-    # 
-    inv_sensor_data = 1/sensor_data
+    # a
+    inv_sensor_data = 1 / np.array(sensor_data)
 
     #256: 76.8 :38.4
     #90,166
 
     img = []
-    img.append(inv_pred_depth[90:166, 0:50])
-    img.append(inv_pred_depth[90:166, 50:100])
-    img.append(inv_pred_depth[90:166, 100:150])
-    img.append(inv_pred_depth[90:166, 150:200])
+    img.append(inv_pred_depth[90:166, 0:49])
+    img.append(inv_pred_depth[90:166, 49:102])
+    img.append(inv_pred_depth[90:166, 102:155])
+    img.append(inv_pred_depth[90:166, 155:200])
     img.append(inv_pred_depth[90:166, 200:256])
 
     # finding the corresponding max values (since 1/depths)
@@ -123,8 +115,9 @@ def fuse_data(inv_pred_depth, sensor_data):
     x = []
 
     for i in range(0,len(img)):
-        x.append(inv_sensor_data[i])
-        y.append(np.max(img[i]))
+        if inv_sensor_data[i] < 1e6:
+            x.append(inv_sensor_data[i])
+            y.append(np.max(img[i]))
 
     
     w,b = get_regress_coeff(np.array(y),np.array(x))
@@ -187,17 +180,28 @@ def get_midas_map(cap):
 
 
 def get_sensor_data(device):
-    ''' get_sensor_data(laserarray_device) -> [[int, ...], ...]
+    ''' get_sensor_data(laserarray_device) -> [float, ...]
 
-    Returns a list containing lists ranges for each sensor on the
-    platform. The outer list will have a fixed size of 5 elements, and
-    the inner lists may contain between 0 and 8 range values.
+    Returns a list containing lists the closest range for each sensor,
+    in meters.
     '''
 
     sensor_data = []
     for i in range(0, 5):
         timestamp, ranges = device.get_detections(i)
-        sensor_data.append(ranges)
+
+        msg = "Sensor %i:" % i
+        for dist in ranges:
+            msg += "  %10i" % dist
+        print(msg)
+
+        ranges = [x for x in ranges if x < 6000]
+        if len(ranges) > 0:
+            min_range = min(ranges)
+        else:
+            min_range = 1e-9
+        min_range = float(min_range) / 1000.0
+        sensor_data.append(min_range)
 
     return sensor_data
 
@@ -239,7 +243,7 @@ def publish_laserscan(publisher, depth_map):
 
     # get center row of depth map of size 256x256
     depth_map = depth_map[128, :]
-    depth_map = depth_map / 1000     # convert mm to meters
+    depth_map = depth_map
     laserscan.ranges = list(reversed(depth_map.flatten().tolist()))
     publisher.publish(laserscan)
 
