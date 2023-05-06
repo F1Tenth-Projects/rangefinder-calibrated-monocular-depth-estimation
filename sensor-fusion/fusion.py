@@ -63,7 +63,7 @@ def main():
 
     while True:
         midas_map, fps = get_midas_map(cap)
-        midas_map = (1.0 / (255 - midas_map) * (1024 + 512)).astype(np.uint8)
+        depth_map = (1.0 / (255 - midas_map) * (1024 + 512)).astype(np.uint8)
 
         sensor_data = get_sensor_data(laserdev)
         for i in range(len(sensor_data)):
@@ -75,7 +75,7 @@ def main():
                 msg += "  %10i" % dist
             print(msg)
 
-        absolute_depth_map = fuse_data(midas_map, sensor_data)
+        absolute_depth_map = fuse_data(depth_map, sensor_data)
         if absolute_depth_map is None:
             continue
 
