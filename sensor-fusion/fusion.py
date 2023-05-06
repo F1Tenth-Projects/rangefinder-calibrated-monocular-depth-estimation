@@ -12,7 +12,10 @@ import rclpy
 import rclpy.node
 from sensor_msgs.msg import LaserScan
 import sensor_msgs.msg
+from moving_average_filter import MovingAverageFilter
 
+# Initialize the moving average filter with a window size of 5
+scale_filter = MovingAverageFilter(window_size=5)
 
 # Load the TensorRT engine
 TRT_LOGGER = trt.Logger(trt.Logger.Severity.ERROR)
@@ -164,7 +167,11 @@ def calc_scale_factor(imageslice, rangelist, idx):
     print(idx, min_range, peak)
     scaling_factor = min_range / peak
 
-    return scaling_factor
+    # filter the scaling factor
+    scale_filter.update(scaling_factor)
+    filtered_scale_factor = scale_filter.get_average()
+
+    return filtered_scale_factor
 
 
 def merge_scale_factors(scale_list):
