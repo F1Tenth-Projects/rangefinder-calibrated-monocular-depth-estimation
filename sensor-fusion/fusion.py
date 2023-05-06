@@ -53,9 +53,9 @@ def main():
     cap = cv2.VideoCapture("/dev/video4")
     cap.set(cv2.CAP_PROP_FPS, 60)
 
-    laserdev = laserarray.LaserArray("/dev/laserarray")
-    for i in range(0, 5):
-        laserdev.enable_sensor(i)
+    #laserdev = laserarray.LaserArray("/dev/laserarray")
+    #for i in range(0, 5):
+    #    laserdev.enable_sensor(i)
 
     # create a publisher for the laserscan message
     rclpy.init()
@@ -63,27 +63,27 @@ def main():
 
     while True:
         midas_map, fps = get_midas_map(cap)
-        midas_map = (1.0 / (255 - midas_map) * (1024 + 512)).astype(np.uint8)
+        depth_map = (1.0 / (255 - midas_map) * (1024 + 512)).astype(np.uint8)
 
-        sensor_data = get_sensor_data(laserdev)
-        for i in range(len(sensor_data)):
-            sensor_data[i] = [x for x in sensor_data[i] if x < 6000]
+        #sensor_data = get_sensor_data(laserdev)
+        #for i in range(len(sensor_data)):
+        #    sensor_data[i] = [x for x in sensor_data[i] if x < 6000]
 
-        for i, sensor in enumerate(sensor_data):
-            msg = "Sensor %i:" % i
-            for dist in sensor:
-                msg += "  %10i" % dist
-            print(msg)
+        #for i, sensor in enumerate(sensor_data):
+        #    msg = "Sensor %i:" % i
+        #    for dist in sensor:
+        #        msg += "  %10i" % dist
+        #    print(msg)
 
-        absolute_depth_map = fuse_data(midas_map, sensor_data)
-        if absolute_depth_map is None:
-            continue
+        #absolute_depth_map = fuse_data(depth_map, sensor_data)
+        #if absolute_depth_map is None:
+        #    continue
 
         # publish the laserscan message
-        publish_laserscan(laserscan_pub, absolute_depth_map)
+        publish_laserscan(laserscan_pub, depth_map)
 
         print("FPS", fps)
-        cv2.imshow('Depth Map', midas_map)
+        cv2.imshow('Depth Map', depth_map)
 
         # Wait for a key press to exit
         if cv2.waitKey(1) == ord('q'):
@@ -293,8 +293,10 @@ def publish_laserscan(publisher, depth_map):
 
     # get center row of depth map of size 540x960
     depth_map = depth_map[270, :]
-    depth_map = depth_map / 1000     # convert mm to meters
-    laserscan.ranges = list(reversed(depth_map.flatten().tolist()))
+    depth_map = depth_map / 10     # convert to... something
+    laserdata = list(reversed(depth_map.flatten().tolist()))
+    laserdata = [float(x) for x in laserdata]
+    laserscan.ranges = laserdata
     publisher.publish(laserscan)
 
 
