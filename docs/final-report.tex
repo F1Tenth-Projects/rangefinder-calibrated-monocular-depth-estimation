@@ -1,0 +1,74 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{placeins}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Rangefinder-Calibrated Visual Object Detection}
+
+\author{
+	\IEEEauthorblockN{Raj Anadkat}
+	\IEEEauthorblockA{raj618@seas.upenn.edu}
+\and
+	\IEEEauthorblockN{Jonathan Lee}
+	\IEEEauthorblockA{jonlee27@seas.upenn.edu}
+\and
+	\IEEEauthorblockN{Jonathan Schoeffling}
+	\IEEEauthorblockA{jschoeff@seas.upenn.edu}
+\and
+	\IEEEauthorblockN{Hanli Zhang}
+	\IEEEauthorblockA{hanlizh@seas.upenn.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+The lidar used on the F1TENTH platform is expensive, which limits the size of
+the classes and programs that use it. This project aimed to achieve a more
+useful combined estimate of both azimuth and range by fusing data from high
+azimuth accuracy / low range accuracy sensors with data from low azimuth
+accuracy / high range accuracy accuracy sensors. Additional work is needed to
+overcome noise in the depth estimation model and to reliably associate the
+measurements of each sensor.
+\end{abstract}
+
+\begin{IEEEkeywords}
+F1TENTH, autonomous driving, MiDaS, time-of-flight, rangefinder, lidar, sensor
+fusion
+\end{IEEEkeywords}
+
+\section{Approach}
+
+\section{Implementation}
+\subsection{MiDaS Depth Inference Model}
+\subsection{Time-of-Fight Array}
+\subsection{Sensor Fusion}
+\subsection{Gap Following}
+
+\section{Results}
+\subsection{Integrated Gap Following}
+\subsection{MiDaS Performance}
+\subsection{Time-of-Fight Array Performance}
+\subsection{Sensor Fusion Performance}
+
+\section{Future Work}
+
+
+
+\begin{thebibliography}{00}
+\bibitem{midas} https://github.com/isl-org/MiDaS
+\bibitem{midas-paper} Ranftl et. al., Towards Robust Monocular Depth Estimation:
+Mixing Datasets for Zero-shot Cross-dataset Transfer, TPAMI 2022
+\bibitem{realsense-range} https://www.intelrealsense.com/stereo-depth/
+\bibitem{realsense-error} https://dev.intelrealsense.com/docs/tuning-depth-cameras-for-best-performance
+\end{thebibliography}
+
+\end{document}
