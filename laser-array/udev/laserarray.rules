@@ -1,0 +1,1 @@
+SUBSYSTEM=="usb",ATTRS{idVendor}=="03eb",ATTRS{idProduct}=="2423",ATTRS{product}=="F1TENTH VL53L4CX Array",SYMLINK+="laserarray"
