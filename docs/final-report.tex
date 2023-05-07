@@ -45,21 +45,206 @@ F1TENTH, autonomous driving, MiDaS, time-of-flight, rangefinder, lidar, sensor
 fusion
 \end{IEEEkeywords}
 
-\section{Approach}
+\section{Project Objectives}
+To function as an autonomous vehicle, the F1TENTH platform must be able to
+determine the location of objects in its environment, with a reasonable degree
+of accuracy in both azimuth and range. The lidars currently used for this task
+are the single most expensive component on the car. An alternate solution that
+can achieve reasonable accuracy with lower cost would be of substantial
+benefit.
+
+MiDaS is a machine learning model capable of vision-based depth inference.
+Using a monocular camera as an input, the model can produce outputs with high
+accuracy in azimuth and elevation, but its output is a low-fidelity estimate of
+inverse relative depth. Laser time-of-flight sensors, by contrast, have
+excellent accuracy in depth, but can only provide azimuth information in a
+fixed angle increments with a fairly wide field of view. The objective of the
+project is to use sensor fusion to combine the high-accuracy azimuth and
+elevation data from MiDaS with the high-accuracy range data from an array of
+time-of-flight sensors, leveraging the strengths of both sensors to produce a
+fused depth map with reasonable accuracy in all dimensions.
+
 
 \section{Implementation}
+
+\subsection{System Design}
+
+The design physically mounts a camera above an array of rangefinders, with each
+sensor element in the array spaced in even increments of angle so that coverage
+is provided for the entire field of view of the RealSense camera. The mount is
+shown in Figure \ref{fig:mount}.
+
+\begin{figure}
+\centering
+\includegraphics[scale=1.00]{mount.png}
+\caption{Sensor array mount attached to the F1TENTH car}
+\label{fig:mount}
+\end{figure}
+
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.31]{block-diagram-final.png}
+\caption{Block diagram for the sensor system}
+\label{fig:block-diagram}
+\end{figure}
+
+
+The Intel RealSense camera, operating in this configuration as a monocular
+camera, provides inputs to the MiDaS depth estimation model. The output of the
+model is a 960x540 grayscale image, providing the model's 2D estimation of
+inverse relative depth. Concurrently, each element of the time-of-flight sensor
+array samples distances within its field of view, and provides them to the
+Jetson via USB.
+
+A sensor fusion node running on the Jetson receives both the depth map and the
+direct range measurments, which are then combined to produce an absolute depth
+map. This absolute depth map is then sampled at a predetermined height, and the
+range values are packed into a ROS LaserScan message, which emulates the output
+of the lidar. The follow-the-gap algorithm then consumes this message to steer
+the car.
+
+The overall sensor design is shown in Figure \ref{fig:block-diagram}.
+
+\FloatBarrier
+
 \subsection{MiDaS Depth Inference Model}
+TODO
+
+\FloatBarrier
 \subsection{Time-of-Fight Array}
+The time-of-flight sensor array is composed of five of ST Microelectronics'
+VL53L4CX sensors, mounted to the corresponding Adafruit breakout board. The
+sensors connect via I2C to an Adafruit Metro M4 Grand Central development
+board, hosting an ATSAMD51 microcontroller, which performs the requisite signal
+processing and then provides the range data to the host via USB. A client
+library implementing a libusb device driver provides access to the rangefinder
+data.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.31]{vl53l4cx-adafruit.png}
+\caption{the VL53L4CX time-of-flight sensor on Adafruit breakout board}
+\label{fig:vl53l4cx}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.31]{grand-central.png}
+\caption{the Adafruit Metro M4 Grand Central development board}
+\label{fig:grand-central}
+\end{figure}
+
+The the physical mount is shown in \ref{fig:mount}. It is 3D printed from ABS
+plastic and serves as an attachment point for both the laser rangefinders and
+the Intel RealSense camera. The mount is split into two halves. The lower mount
+show in the left side of Figure \ref{fig:split-mount} attaches to the v3
+version of the F1TENTH upper chassis, in place of the Hokuyo Lidar, and also
+provides screwholes to attach the SAMD51 development board.
+
+The upper mount attaches to the lower mount with screws, and provides the
+attachment points for the camera and rangefinders. The camera and rangefinders
+are positioned such that the camera lens is approximately at the center of a
+circle with the time of flight sensors along the circumference. The sensors are
+positioned such that their 18-degree fields of view are adjacent and provide
+full coverage over the RealSense camera's 87-degree horizontal FOV. Because one
+dimensions of each measurement is almost completely unknown to the other type
+of sensor, using a mechanically aligned sensor configuration is preferred to
+coordinate transformations.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.20]{split-mount.png}
+\caption{the lower and upper mount of the sensor array}
+\label{fig:split-mount}
+\end{figure}
+
+Each of the 5 sensors is electrically connected over a single I2C bus. Power is
+provided by the 3V3 power pin of the development board. With each sensor
+drawing approximately 20mA of current, the total power consumption of 100mA is
+low enough that the rangefinder array can be bus powered, eliminating the need
+for an external power supply. Pinouts and cable drawings are shown in Figure
+\ref{fig:cable-drawings}. The need to cable the I2C interfaces unfortunately
+proved to be problematic while integrating with the F1TENTH car (see the
+\textit{Results} section for details).
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.11]{cables/laser-array-cables.png}
+\caption{cable drawings for the laser array}
+\label{fig:cable-drawings}
+\end{figure}
+
+The SAMD51 microcontroller handles the I2C communications with the sensors,
+initial signal processing, and communication with the host via USB. The I2C
+protocol and signal processing for the sensor modules is handled by ST's VL53LX
+library. A custom USB driver handles communications with the host. The USB
+interface provides control transfers to manage the array, allowing each sensor
+element to be independently enable/disabled. Interrupt transfers are used to
+provide data on an 11-ms periodic.
+
+\FloatBarrier
+
+On the client side, the device driver was implemented in userspace using
+libusb. This avoids the need for a kernel driver, improving portability. The
+driver takes the form of C library with Python API bindings provided using
+the ctypes foreign function interface.
+
 \subsection{Sensor Fusion}
+TODO
+
 \subsection{Gap Following}
+TODO
 
 \section{Results}
 \subsection{Integrated Gap Following}
+TODO
+
 \subsection{MiDaS Performance}
+TODO
+
 \subsection{Time-of-Fight Array Performance}
+The outputs provided by the VL53L4CX time of flight sensors are unfortunately
+somewhat less "rich" than originally hoped. Even after some tuning, the
+rangefinders were only capable of measuring a maximum range of approximately
+3.5 meters, as opposed to the advertised 6 meters. The tunable parameters
+unfortunately have a tradeoff between maximum range and latency, both of which
+are important for this application. Additionally, the "histogram" nature of the
+rangefinder (i.e., being capable of detecting sensor returns at multiple
+distances within its field of view) is somewhat less impressive in practice.
+While five or six simultaneous returns have been seen under ideal
+circumstances, this is uncommon, and typically, only a single value is
+returned. This sharply limits the amount of data that can be used during the
+sensor fusion regression step.
+
+Another complication arises from integration with the F1TENTH car, which
+appears to induce failures in the sensor's I2C communications. Each time the
+motor is activated, the I2C bus fails, entering an inconsistent state shortly
+thereafter. Diagnostics performed thus far have ruled out power transients and
+mechanical shock and vibration as possible causes. The problem persists even
+when the sensor is connected to an independent electrical system and data is
+sent to an off-car USB host. Given the evidence, an EMI problem caused by
+operating a large motor in close physical proximity to the sensor seems likely.
+The use of separate development and breakout boards necessitates cables of
+several centimeters in length to connect the I2C clock and data lines between
+components. Unshielded cables of this length could very well form an antenna
+that is susceptible to radiated emissions from the large inductive load of the
+motor. This complication unfortunately limited the degree to which the sensor
+fusion implementation could be evaluated operationally.
+
 \subsection{Sensor Fusion Performance}
+TODO
 
 \section{Future Work}
+Redesigning the rangefinder array as a flex PCB could offer a number of
+advantages. Moving I2C signals from long cables to short traces above a solid
+ground plane could significantly reduce the electromagnetic susceptibility of
+the sensor. Mechanically, the sensor could be far more compact, fitting into
+approximately the same footprint as the current Hokuyo lidar. Cost may also be
+improved, as the VL53L4CX IC is priced around \$5, while the Adafruit breakout
+boards are priced at \$15. The SAMD51 MCU is approximately \$7, while the
+development board is \$40. This should result in significant cost savings, even
+after including the cost of a custom PCB.
 
 
 
