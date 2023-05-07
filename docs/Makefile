@@ -1,17 +1,11 @@
-ADOC = asciidoctor-pdf
-ADOCFLAGS = -a pdf-theme=theme.yml -r ./bibliography.rb
-
 TEX = pdflatex
 TEXFLAGS = -halt-on-error -output-directory $(dir $@)
 
 DOC_LIST = proposal.pdf
-DOC_LIST = proposal.pdf final-report.pdf
 CLEAN_LIST += $(DOC_LIST) schedule.png block-diagram.png \
-              proposal.aux proposal.log \
-              final-report.aux final-report.log
+              proposal.aux proposal.log
 
 proposal.pdf-deps := block-diagram.png schedule.png
-fianl-report.pdf-deps := block-diagram.png schedule.png
 
 docs: $(DOC_LIST)
 
@@ -19,10 +13,6 @@ docs: $(DOC_LIST)
 clean:
 	rm -f $(CLEAN_LIST)
 
-
-.SECONDEXPANSION:
-%.pdf: %.adoc $$($$@-deps)
-	$(QUIET_ADOC) $(ADOC) $(ADOCFLAGS) $< -o $@
 
 .SECONDEXPANSION:
 %.pdf: %.tex $$($$@-deps)
