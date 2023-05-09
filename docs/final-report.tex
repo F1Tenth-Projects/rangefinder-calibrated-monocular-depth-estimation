@@ -191,7 +191,27 @@ driver takes the form of C library with Python API bindings provided using
 the ctypes foreign function interface.
 
 \subsection{Sensor Fusion}
-TODO
+Sensor fusion is a critical component, enabling the integration and combination of data from multiple sensors to obtain a more accurate and reliable understanding of the environment. In our project, we employed sensor fusion techniques to combine depth information from a depth map and range measurements from a rangefinder. This fusion process aimed to enhance the accuracy and robustness of the depth estimation.
+
+1) Depth Map Histogram Analysis:
+One aspect of our sensor fusion approach involved analyzing the histogram of the depth map. The depth map represents the estimated depth values for each pixel in the image, and we sliced the depth map into different parts to align its view with the view of the TOF (Time-of-Flight) sensors. 
+
+The histogram analysis allowed us to identify intensity peaks in the depth map. By extracting these intensity peaks, we could understand the presence of various objects and their approximate distances from the sensor.
+
+
+2) Linear Regression for Scaling Factors and Biases:
+To align the intensity peaks in the depth map histogram with the range measurements from the rangefinder, we utilized a linear regression algorithm. This algorithm produced scaling factors and biases that helped adjust the estimated depth values from the depth map to be more accurate and aligned with the range measurements.
+The inverse depth values from the depth map and rangefinder can be represented as $z_{d} = 1/D$ and $z_{r} = 1/R$, respectively, where $D$ and $R$ represent the depth and range values. The linear regression approach involved finding the linear relationship between the absolute inverse depth values obtained from the rangefinder and the inverse depth values from the depth map. We can represent this relationship as:
+$z_r=\alpha z_d+\beta$
+
+where $\alpha$ and $\beta$ represent the scaling factor and bias, respectively. By deriving the scaling factors and biases, we could convert the relative inverse depth predictions from the depth map into absolute inverse depth values, enhancing the accuracy of the depth estimation.
+
+3) Kalman Filter for Sensor Fusion:
+In addition to the linear regression-based adjustment, we employed a sensor fusion algorithm known as the Kalman filter. 
+
+The Kalman filter played a crucial role in integrating the adjusted depth values from the depth map with the range measurements from the rangefinder. By considering the respective strengths and weaknesses of the two sensors, the Kalman filter dynamically updated the scale and bias parameters, incorporating new information and refining the depth estimation.
+
+Through the fusion process, the Kalman filter effectively combined the adjusted depth values and the range measurements, exploiting their complementary characteristics to provide a more accurate and reliable estimate of the scene's depth information.
 
 \subsection{Gap Following}
 TODO
@@ -233,7 +253,15 @@ motor. This complication unfortunately limited the degree to which the sensor
 fusion implementation could be evaluated operationally.
 
 \subsection{Sensor Fusion Performance}
-TODO
+While our sensor fusion approach has shown promising results in combining depth information from the depth map and range measurements from the rangefinder, we have observed some limitations in the current implementation. Specifically, the sensor fusion outputs exhibit a certain level of inconsistency and fluctuations, resulting in a "jumpy" behavior.
+
+One of the challenges we encountered is the need for more integration time to refine the implementation. The current fusion process combines the depth map and range measurements to obtain depth estimates, but the results still lack the desired smoothness and stability. This is mainly due to the inherent noise and uncertainty present in both the depth map and rangefinder data.
+
+To address this issue and achieve more reliable and accurate depth estimation, additional refinement is required. Increasing the integration time, which involves collecting data over a longer period, can help mitigate the effects of noise and fluctuations. This extended integration time allows the sensor fusion algorithm to gather more information and make more informed decisions, resulting in smoother and more consistent depth outputs.
+
+Furthermore, optimization of the sensor fusion algorithm itself may be necessary. Fine-tuning the fusion parameters, adjusting the weighting of the depth map and rangefinder data, and incorporating filtering techniques can contribute to improved performance. Techniques such as temporal filtering or applying smoothing algorithms, such as moving average or Gaussian filters, can help reduce the "jumpy" behavior and provide more stable depth estimates.
+
+In conclusion, while our sensor fusion approach shows promise in combining depth information from the depth map and range measurements, there is room for improvement. 
 
 \section{Future Work}
 Redesigning the rangefinder array as a flex PCB could offer a number of
