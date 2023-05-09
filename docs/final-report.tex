@@ -109,7 +109,13 @@ The overall sensor design is shown in Figure \ref{fig:block-diagram}.
 \FloatBarrier
 
 \subsection{MiDaS Depth Inference Model}
-TODO
+\begin{figure}
+\centering
+\includegraphics[scale=0.65]{midas-heatmap.png}
+\caption{the output from a monocular camera and a heatmap of the corresponding
+         MiDaS depth estimate}
+\label{fig:midas-heatmap}
+\end{figure}
 
 \FloatBarrier
 \subsection{Time-of-Fight Array}
@@ -197,6 +203,13 @@ Sensor fusion is a critical component, enabling the integration and combination 
 One aspect of our sensor fusion approach involved analyzing the histogram of the depth map. The depth map represents the estimated depth values for each pixel in the image, and we sliced the depth map into different parts to align its view with the view of the TOF (Time-of-Flight) sensors. 
 
 The histogram analysis allowed us to identify intensity peaks in the depth map. By extracting these intensity peaks, we could understand the presence of various objects and their approximate distances from the sensor.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.40]{fusion-histogram.png}
+\caption{MonoDepth grayscale image with middle row highlighted}
+\label{fig:fusion-histogram}
+\end{figure}
 
 
 2) Linear Regression for Scaling Factors and Biases:
