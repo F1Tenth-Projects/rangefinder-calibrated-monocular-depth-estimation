@@ -36,9 +36,9 @@ The lidar used on the F1TENTH platform is expensive, which limits the size of
 the classes and programs that use it. This project aimed to achieve a more
 useful combined estimate of both azimuth and range by fusing data from high
 azimuth accuracy / low range accuracy sensors with data from low azimuth
-accuracy / high range accuracy accuracy sensors. Additional work is needed to
-overcome noise in the depth estimation model and to reliably associate the
-measurements of each sensor.
+accuracy / high range accuracy sensors. Additional work is needed to overcome
+noise in the depth estimation model and to reliably associate the measurements
+of each sensor.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -50,20 +50,37 @@ fusion
 To function as an autonomous vehicle, the F1TENTH platform must be able to
 determine the location of objects in its environment, with a reasonable degree
 of accuracy in both azimuth and range. The lidars currently used for this task
-are the single most expensive component on the car. An alternate solution that
-can achieve reasonable accuracy with lower cost would be of substantial
-benefit.
+are highly capable, but are also the single most expensive component on the
+platform, imposing a significant cost constraint in adding more vehicles to the
+program. An alternate solution that can achieve reasonable accuracy with lower
+cost would be of substantial benefit. The project aims to combine the benefits
+of two low-cost sensors to achieve a usable result for navigation of the
+F1TENTH platform.
 
-MiDaS is a machine learning model capable of vision-based depth inference.
-Using a monocular camera as an input, the model can produce outputs with high
-accuracy in azimuth and elevation, but its output is a low-fidelity estimate of
-inverse relative depth. Laser time-of-flight sensors, by contrast, have
-excellent accuracy in depth, but can only provide azimuth information in a
-fixed angle increments with a fairly wide field of view. The objective of the
-project is to use sensor fusion to combine the high-accuracy azimuth and
-elevation data from MiDaS with the high-accuracy range data from an array of
-time-of-flight sensors, leveraging the strengths of both sensors to produce a
-fused depth map with reasonable accuracy in all dimensions.
+MiDaS is a machine learning model capable of vision-based depth inference,
+using a monocular camera as an input. The model was trained on a wide variety
+of large datasets, attempting produce a solution that generalizes well to new
+environments. While the model can achieve a reasonable degree of accuracy in
+determining the relative inverse depth of objects in an image, mapping to
+absolute ranges requires some adaptation of the model. Because of its
+vision-based approach, MiDaS naturally produces outputs with high accuracy in
+azimuth and elevation, but limited fidelity in the depth estimate. The depth
+results for each frame are also calculated independently, so the scale and
+offset of the estimate can drift, necessitating the use of active calibration
+(i.e., one-time offline calibration generally is not feasible).
+
+Laser time-of-flight sensors, by contrast, have excellent accuracy in depth,
+but can only provide azimuth information in fixed angle increments with a
+fairly wide field of view. Consequently, such an approach is, on its own,
+unsuitable for fine measurements in azimuth. Unlike a stereo camera solution
+however, the rangefinder approach does not lose accuracy at the outer edge of
+its range limits, and its accuracy is not limited by the physical width
+separating the sensors, allowing for a more compact solution.
+
+By using sensor fusion to combine the high-accuracy azimuth and elevation data
+from MiDaS with the high-accuracy range data from an array of time-of-flight
+sensors, the strengths of both sensors can be leveraged to produce a fused
+depth map with reasonable accuracy in all dimensions.
 
 
 \section{Implementation}
@@ -77,7 +94,7 @@ shown in Figure \ref{fig:mount}.
 
 \begin{figure}
 \centering
-\includegraphics[scale=1.00]{mount.png}
+\includegraphics[scale=1.10]{mount.png}
 \caption{Sensor array mount attached to the F1TENTH car}
 \label{fig:mount}
 \end{figure}
@@ -85,7 +102,7 @@ shown in Figure \ref{fig:mount}.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.31]{block-diagram-final.png}
+\includegraphics[scale=0.45]{block-diagram-final.png}
 \caption{Block diagram for the sensor system}
 \label{fig:block-diagram}
 \end{figure}
@@ -99,15 +116,13 @@ array samples distances within its field of view, and provides them to the
 Jetson via USB.
 
 A sensor fusion node running on the Jetson receives both the depth map and the
-direct range measurments, which are then combined to produce an absolute depth
+direct range measurements, which are then combined to produce an absolute depth
 map. This absolute depth map is then sampled at a predetermined height, and the
 range values are packed into a ROS LaserScan message, which emulates the output
 of the lidar. The follow-the-gap algorithm then consumes this message to steer
 the car.
 
 The overall sensor design is shown in Figure \ref{fig:block-diagram}.
-
-\FloatBarrier
 
 \subsection{Monocular Depth Estimation}
 Monocular depth estimation is a task of predicting the depth map of a given input image. This can be formulated as a pixel-wise regression problem where each pixel in the input image is assigned a depth value. The task can be viewed as a segmentation problem where each pixel is considered a class and predicted depth is assigned to that class. The predicted depth maps can be used for various applications such as 3D reconstruction and mapping.
@@ -123,7 +138,7 @@ The team adopted a similar model, which exhibited remarkable performance. The Un
 \caption{Depth map comparison for the three models.}
 \label{tab:model_comparison}
 \small % smaller font size
-\begin{tabular}{|p{1.4cm}|p{1.2cm}|p{1cm}| p{2.5cm}|}
+\begin{tabular}{|p{1.4cm}|p{1.0cm}|p{0.8cm}| p{4.5cm}|}
 \hline
 \textbf{Model} & \textbf{Input} & \textbf{FPS} & \textbf{Depth Map} \\
 \hline
@@ -147,22 +162,22 @@ data.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.31]{vl53l4cx-adafruit.png}
+\includegraphics[scale=0.35]{vl53l4cx-adafruit.png}
 \caption{the VL53L4CX time-of-flight sensor on Adafruit breakout board}
 \label{fig:vl53l4cx}
 \end{figure}
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.31]{grand-central.png}
+\includegraphics[scale=0.40]{grand-central.png}
 \caption{the Adafruit Metro M4 Grand Central development board}
 \label{fig:grand-central}
 \end{figure}
 
-The the physical mount is shown in \ref{fig:mount}. It is 3D printed from ABS
-plastic and serves as an attachment point for both the laser rangefinders and
-the Intel RealSense camera. The mount is split into two halves. The lower mount
-show in the left side of Figure \ref{fig:split-mount} attaches to the v3
+The physical mount is shown in Figure \ref{fig:mount}. It is 3D printed from
+ABS plastic and serves as an attachment point for both the laser rangefinders
+and the Intel RealSense camera. The mount is split into two halves. The lower
+mount shown in the left side of Figure \ref{fig:split-mount} attaches to the v3
 version of the F1TENTH upper chassis, in place of the Hokuyo Lidar, and also
 provides screwholes to attach the SAMD51 development board.
 
@@ -172,7 +187,7 @@ are positioned such that the camera lens is approximately at the center of a
 circle with the time of flight sensors along the circumference. The sensors are
 positioned such that their 18-degree fields of view are adjacent and provide
 full coverage over the RealSense camera's 87-degree horizontal FOV. Because one
-dimensions of each measurement is almost completely unknown to the other type
+dimension of each measurement is almost completely unknown to the other type
 of sensor, using a mechanically aligned sensor configuration is preferred to
 coordinate transformations.
 
@@ -183,14 +198,14 @@ coordinate transformations.
 \label{fig:split-mount}
 \end{figure}
 
-Each of the 5 sensors is electrically connected over a single I2C bus. Power is
-provided by the 3V3 power pin of the development board. With each sensor
-drawing approximately 20mA of current, the total power consumption of 100mA is
-low enough that the rangefinder array can be bus powered, eliminating the need
-for an external power supply. Pinouts and cable drawings are shown in Figure
-\ref{fig:cable-drawings}. The need to cable the I2C interfaces unfortunately
-proved to be problematic while integrating with the F1TENTH car (see the
-\textit{Results} section for details).
+Each of the five sensors communicate with the microcontroller over a single I2C
+bus. Power is provided by the 3V3 power pin of the development board. With each
+sensor drawing approximately 20mA of current, the total current draw of 100mA
+is low enough that the rangefinder array can be bus powered, eliminating the
+need for an external power supply. Pinouts and cable drawings are shown in
+Figure \ref{fig:cable-drawings}. The need to cable the I2C interfaces
+unfortunately proved to be problematic while integrating with the F1TENTH car
+(see the \textit{Results} section for details).
 
 \begin{figure}
 \centering
@@ -203,15 +218,15 @@ The SAMD51 microcontroller handles the I2C communications with the sensors,
 initial signal processing, and communication with the host via USB. The I2C
 protocol and signal processing for the sensor modules is handled by ST's VL53LX
 library. A custom USB driver handles communications with the host. The USB
-interface provides control transfers to manage the array, allowing each sensor
-element to be independently enable/disabled. Interrupt transfers are used to
-provide data on an 11-ms periodic.
+interface defines a set of USB control requests to manage the array, allowing
+each sensor element to be independently enable/disabled. Interrupt transfers
+are used to provide data on an 11-ms periodic.
 
 \FloatBarrier
 
-On the client side, the device driver was implemented in userspace using
+On the client side, a device driver was implemented in userspace using
 libusb. This avoids the need for a kernel driver, improving portability. The
-driver takes the form of C library with Python API bindings provided using
+driver takes the form of a C library with Python API bindings provided using
 the ctypes foreign function interface.
 
 \subsection{Sensor Fusion}
@@ -223,7 +238,7 @@ One aspect of our sensor fusion approach involved analyzing the histogram of the
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.4\textwidth]{histogram_analysis.png}
+    \includegraphics[width=0.51\textwidth]{histogram_analysis.png}
     \caption{Histogram Analysis}
     \label{fig:Histogram Analysis}
 \end{figure}
@@ -245,46 +260,51 @@ The Kalman filter played a crucial role in integrating the adjusted depth values
 
 Through the fusion process, the Kalman filter effectively combined the adjusted depth values and the range measurements, exploiting their complementary characteristics to provide a more accurate and reliable estimate of the scene's depth information.
 
-\subsection{Gap Following}
-TODO
 
 \section{Results}
-\subsection{Integrated Gap Following}
-TODO
-
 \subsection{MiDaS Performance}
-The MiDAS depth estimation model performed decently on the levine corridors. With an impressive speed of 40 frames per second, it could efficiently generate depth maps in real-time after TensorRT optimization. Furthermore, the model's performance in terms of providing accurate depth information is commendable, making it a valuable asset in various applications that require depth estimation. However, it is important to note that the model is not immune to certain limitations, such as the presence of noise and susceptibility to reflections and optical illusions, as well as its training on non-consecutive images that may cause temporal inconsistency in video applications.It is worth mentioning that the MiDaS model tends to be biased towards hands and faces and may perceive their depths differently than other objects present at the same depths. To account for these problems, Transfer learning on depth maps from consecutive frames of Race Map Data-set can show promising results in reducing bias towards specific objects, reduce the temporal inconsistency and improve the overall performance of the model.  Despite these limitations, the MiDaS model remains a powerful solution for depth estimation tasks.
+The MiDAS depth estimation model performed decently on the Levine corridors. With an impressive speed of 40 frames per second, it could efficiently generate depth maps in real-time after TensorRT optimization. Furthermore, the model's performance in terms of providing accurate depth information is commendable, making it a valuable asset in various applications that require depth estimation. However, it is important to note that the model is not immune to certain limitations, such as the presence of noise and susceptibility to reflections and optical illusions, as well as its training on non-consecutive images that may cause temporal inconsistency in video applications. It is worth mentioning that the MiDaS model tends to be biased towards hands and faces and may perceive their depths differently than other objects present at the same depths. To account for these problems, Transfer learning on depth maps from consecutive frames of Race Map Data-set can show promising results in reducing bias towards specific objects, reduce the temporal inconsistency and improve the overall performance of the model.  Despite these limitations, the MiDaS model remains a powerful solution for depth estimation tasks.
 
 \subsection{Time-of-Fight Array Performance}
 The outputs provided by the VL53L4CX time of flight sensors are unfortunately
 somewhat less "rich" than originally hoped. Even after some tuning, the
 rangefinders were only capable of measuring a maximum range of approximately
 3.5 meters, as opposed to the advertised 6 meters. The tunable parameters
-unfortunately have a tradeoff between maximum range and latency, both of which
+appear to have a tradeoff between maximum range and latency, both of which
 are important for this application. Additionally, the "histogram" nature of the
 rangefinder (i.e., being capable of detecting sensor returns at multiple
 distances within its field of view) is somewhat less impressive in practice.
 While five or six simultaneous returns have been seen under ideal
 circumstances, this is uncommon, and typically, only a single value is
 returned. This sharply limits the amount of data that can be used during the
-sensor fusion regression step.
+sensor fusion regression step, and makes the implementation highly sensitive to
+outliers.
 
 Another complication arises from integration with the F1TENTH car, which
 appears to induce failures in the sensor's I2C communications. Each time the
-motor is activated, the I2C bus fails, entering an inconsistent state shortly
-thereafter. Diagnostics performed thus far have ruled out power transients and
-mechanical shock and vibration as possible causes. The problem persists even
-when the sensor is connected to an independent electrical system and data is
-sent to an off-car USB host. Given the evidence, an EMI problem caused by
-operating a large motor in close physical proximity to the sensor seems likely.
-The use of separate development and breakout boards necessitates cables of
-several centimeters in length to connect the I2C clock and data lines between
-components. Unshielded cables of this length could very well form an antenna
-that is susceptible to radiated emissions from the large inductive load of the
-motor. This complication unfortunately limited the degree to which the sensor
-fusion implementation could be evaluated operationally.
+motor is activated, the I2C bus fails shortly thereafter, entering an
+inconsistent state. Diagnostics performed thus far have ruled out power
+transients and mechanical shock and vibration as possible causes. The problem
+persists even when the sensor is connected to an independent electrical system
+and data is sent to an off-car USB host. Given the evidence, an EMI problem
+caused by operating a large motor in close physical proximity to the sensor
+seems likely. The use of separate development and breakout boards necessitates
+cables of several centimeters in length to connect the I2C clock and data lines
+between components. Unshielded cables of this length could very well form an
+antenna that is susceptible to radiated emissions from the large inductive load
+of the motor. This complication unfortunately limited the degree to which the
+sensor fusion implementation could be evaluated operationally.
 
 \subsection{Sensor Fusion Performance}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.32]{fused-laserscan.png}
+\caption{the MiDaS inverse relative depth map and the corresponding
+         emulated LaserScan data}
+\label{fig:fused-laserscan}
+\end{figure}
+
 While our sensor fusion approach has shown promising results in combining depth information from the depth map and range measurements from the rangefinder, we have observed some limitations in the current implementation. Specifically, the sensor fusion outputs exhibit a certain level of inconsistency and fluctuations, resulting in a "jumpy" behavior.
 
 One of the challenges we encountered is the need for more integration time to refine the implementation. The current fusion process combines the depth map and range measurements to obtain depth estimates, but the results still lack the desired smoothness and stability. This is mainly due to the inherent noise and uncertainty present in both the depth map and rangefinder data.
@@ -295,20 +315,59 @@ Furthermore, optimization of the sensor fusion algorithm itself may be necessary
 
 In conclusion, while our sensor fusion approach shows promise in combining depth information from the depth map and range measurements, there is room for improvement. 
 
+\subsection{Integrated Gap Following}
+The gap following implementation from Lab 4 was usable with only minor
+modifications. By taking a horizontal "slice" through the absolute depth map,
+the sensor fusion algorithm is able to approximate the behavior of a 2D lidar
+(see Figure \ref{fig:fused-laserscan}) with sufficient accuracy to enable the
+use of the disparity extender algorithm. While the 87-degree field of view of
+the camera is significantly more narrow than the Hokuyo lidar, it is sufficient
+to detect and navigate around hallway corners.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.35]{corridor-1.png}
+\includegraphics[scale=0.45]{corridor-2.png}
+\includegraphics[scale=0.38]{corridor-3.png}
+\caption{the F1TENTH car navigating around a corner using the new sensor,
+         clockwise from top left}
+\label{fig:moving-car}
+\end{figure}
+
+
+Unfortunately, the EMI problems discussed above resulted in regular failures of
+both the time-of-flight sensor array and the RealSense camera during operation
+of the car. These would cause the emulated LaserScan messages to stop abruptly,
+with the lack of sensor data resulting in a crash. Usable results unfortunately
+occurred relatively infrequently, with several attempts at the same test often
+being required to achieve success. However, the successful tests that did occur
+(see Figure \ref{fig:moving-car}) demonstrate the viability of a generalizable
+vision-based approach that does not require training for a specific
+environment.
+
+
 \section{Future Work}
 The existing model for monocular depth estimation can be further improved. Transfer learning approaches can be adopted on a custom dataset consisting of consecutive frames. This can help to mitigate the issue of temporal inconsistency and enhance the overall model performance. By fine-tuning the pre-trained models on the target dataset, the model can learn to capture the temporal information between consecutive frames and generate more accurate and consistent depth maps. Additionally, incorporating techniques such as data augmentation and regularization can further improve the model's generalization ability and robustness to noise and variations in the input data.
 
 Redesigning the rangefinder array as a flex PCB could offer a number of
-advantages. Moving I2C signals from long cables to short traces above a solid
+advantages. The I2C signals in the current implementation are several
+centimeters long, and likely form an antenna to which radiated emissions from
+the motor can couple. Moving the I2C signals to short PCB traces above a solid
 ground plane could significantly reduce the electromagnetic susceptibility of
-the sensor. Mechanically, the sensor could be far more compact, fitting into
-approximately the same footprint as the current Hokuyo lidar. Cost may also be
-improved, as the VL53L4CX IC is priced around \$5, while the Adafruit breakout
-boards are priced at \$15. The SAMD51 MCU is approximately \$7, while the
-development board is \$40. This should result in significant cost savings, even
-after including the cost of a custom PCB.
+the sensor. Mechanically, the flex PCB approach also allows the sensor to be
+far more compact, bending around a relatively narrow cylindrical surface to
+achieve the appropriate alignment in the field of view of the sensors. A
+footprint comparable to that of the Hokuyo lidar should be achievable. Finally,
+cost may also be improved. The VL53L4CX IC is priced around \$5, while the
+Adafruit breakout boards are priced at \$15. The SAMD51 MCU has a unit cost of
+approximately \$7, while the Adafruit Grand Central development board
+sells for \$40. Even with the additional PCB fabrication cost, removing the
+development boards from the design should result in significant cost savings.
 
-
+Additional shielding for EMI-sensitive and radiating components could also
+improve the reliability of the system. The use of shielded cables and
+conductive enclosures can help mitigate some of the problems experienced during
+testing.
 
 
 
